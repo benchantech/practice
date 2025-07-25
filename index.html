@@ -6,19 +6,35 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; padding: 1rem; }
-    #settings { border: 1px solid #ccc; padding: 1rem; margin-bottom: 1rem; }
-    label { display: block; margin-top: 0.5rem; }
-    input { width: 100%; padding: 0.25rem; }
-    button { margin-top: 0.5rem; padding: 0.5rem 1rem; }
-    #chartContainer { width: 100%; max-width: 800px; margin: 0 auto; }
+    body { font-family: system-ui, sans-serif; background: #fafafa; color: #222; margin: 0; padding: 1rem; }
+    header { text-align: center; padding: 1rem 0; border-bottom: 1px solid #ddd; }
+    h1 { margin: 0; font-size: 1.6rem; }
+    #settings { max-width: 600px; margin: 1rem auto; background: #fff; padding: 1rem; border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);}
+    label { display: block; margin-top: 0.5rem; font-size: 0.9rem; }
+    input, select { width: 100%; padding: 0.4rem; margin-top: 0.2rem; border: 1px solid #ccc; border-radius: 4px;}
+    .slug-options { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.2rem; }
+    .slug-options input[type="color"] { width: 40px; padding: 0; }
+    button { margin-top: 1rem; padding: 0.5rem 1rem; border: none; background: #0077cc; color: white;
+      border-radius: 4px; cursor: pointer; font-size: 0.9rem; }
+    button:hover { background: #005fa3; }
+    #chartContainer { max-width: 800px; margin: 2rem auto; background: #fff; padding: 1rem; border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);}
+    #toggleSettings { display: block; margin: 1rem auto; background: #444; }
+    .clear-btn { margin-top: 0.3rem; background: #999; }
+    .settings-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; }
+    #shareSettings { background:#28a745; }
+    footer { text-align: center; margin-top: 2rem; font-size: 0.8rem; color: #666; }
   </style>
 </head>
 <body>
-  <h1>Practice Log Viewer</h1>
-  <button id="toggleSettings"></button>
+  <header>
+    <h1>Practice Log Viewer</h1>
+  </header>
 
-  <div id="settings">
+  <button id="toggleSettings">Show Settings</button>
+
+  <div id="settings" style="display:none;">
     <label>GitHub Username:
       <input type="text" id="username">
     </label>
@@ -34,15 +50,39 @@
     <label>End Date (optional):
       <input type="date" id="endDate">
     </label>
-    <button id="updateSettings">Update</button>
+    <button class="clear-btn" id="clearEndDate">Clear End Date</button>
+
+    <label>Chart Type:
+      <select id="chartType">
+        <option value="line">Line</option>
+        <option value="bar">Bar</option>
+        <option value="stackedBar">Stacked Bar</option>
+        <option value="pie">Pie</option>
+        <option value="radar">Radar</option>
+        <option value="polarArea">Polar Area</option>
+      </select>
+    </label>
+
+    <div id="slugSettings"></div>
+
+    <div class="settings-actions">
+      <button id="updateSettings">Update</button>
+      <button id="shareSettings">Share</button>
+    </div>
   </div>
 
   <div id="chartContainer">
     <canvas id="practiceChart"></canvas>
   </div>
 
+  <footer>
+    <p>Free tool maintained by Ben Chan Tech LLC — you own your data.</p>
+  </footer>
+
   <script>
-    const LS_KEYS = ['username', 'repo', 'slugs', 'startDate', 'endDate'];
+    const LS_KEYS = ['username', 'repo', 'slugs', 'startDate', 'endDate', 'chartType'];
+    const colorKey = slug => `color_${slug}`;
+    const emojiKey = slug => `emoji_${slug}`;
 
     function loadSettings() {
       let hasData = true;
@@ -51,6 +91,7 @@
         if (val) document.getElementById(k).value = val;
         else if (k !== 'endDate') hasData = false;
       });
+      renderSlugOptions();
       return hasData;
     }
 
@@ -58,6 +99,41 @@
       LS_KEYS.forEach(k => {
         const val = document.getElementById(k).value.trim();
         if (val || k === 'endDate') localStorage.setItem(k, val);
+      });
+      saveSlugOptions();
+    }
+
+    function renderSlugOptions() {
+      const slugContainer = document.getElementById('slugSettings');
+      slugContainer.innerHTML = '';
+      const slugs = (document.getElementById('slugs').value || '').split(',').map(s => s.trim()).filter(Boolean);
+      slugs.forEach(slug => {
+        const colorVal = localStorage.getItem(colorKey(slug)) || '#0077cc';
+        const emojiVal = localStorage.getItem(emojiKey(slug)) || '';
+        const div = document.createElement('div');
+        div.className = 'slug-options';
+        div.innerHTML = `
+          <span>${slug}</span>
+          <input type="color" data-slug="${slug}" value="${colorVal}">
+          <input type="text" placeholder="Color name" data-slug-color="${slug}" value="${colorVal}">
+          <input type="text" placeholder="Emoji" maxlength="2" data-slug-emoji="${slug}" value="${emojiVal}">
+        `;
+        slugContainer.appendChild(div);
+      });
+    }
+
+    function saveSlugOptions() {
+      document.querySelectorAll('input[data-slug]').forEach(inp => {
+        const slug = inp.dataset.slug;
+        localStorage.setItem(colorKey(slug), inp.value);
+      });
+      document.querySelectorAll('input[data-slug-color]').forEach(inp => {
+        const slug = inp.dataset.slugColor;
+        if (inp.value.trim()) localStorage.setItem(colorKey(slug), inp.value.trim());
+      });
+      document.querySelectorAll('input[data-slug-emoji]').forEach(inp => {
+        const slug = inp.dataset.slugEmoji;
+        localStorage.setItem(emojiKey(slug), inp.value.trim());
       });
     }
 
@@ -82,6 +158,11 @@
       saveSettings();
       toggleSettings(false);
       refreshData();
+    });
+
+    document.getElementById('clearEndDate').addEventListener('click', () => {
+      document.getElementById('endDate').value = '';
+      localStorage.removeItem('endDate');
     });
 
     async function fetchLog(url) {
@@ -111,6 +192,7 @@
       const slugs = (localStorage.getItem('slugs') || '').split(',').map(s => s.trim()).filter(Boolean);
       const startDate = localStorage.getItem('startDate');
       const endDate = localStorage.getItem('endDate');
+      const chartType = localStorage.getItem('chartType') || 'line';
 
       if (!username || !repo || !slugs.length || !startDate) {
         alert('Please fill in all required settings.');
@@ -132,36 +214,106 @@
         }
       }
 
-      drawChart(dateRange, dataBySlug);
+      drawChart(dateRange, dataBySlug, chartType);
     }
 
-    function drawChart(labels, dataBySlug) {
+    function drawChart(labels, dataBySlug, chartType) {
       const ctx = document.getElementById('practiceChart').getContext('2d');
-      const datasets = Object.keys(dataBySlug).map(slug => ({
-        label: slug,
-        data: labels.map(date => dataBySlug[slug][date] || 0),
-        fill: false,
-        borderColor: '#' + Math.floor(Math.random()*16777215).toString(16),
-        tension: 0.1
-      }));
+
+      let datasets;
+      let type = chartType;
+
+      if (chartType === 'pie') {
+        const slugs = Object.keys(dataBySlug);
+        const totals = slugs.map(slug => Object.values(dataBySlug[slug]).reduce((a,b)=>a+b,0));
+        datasets = [{
+          data: totals,
+          backgroundColor: slugs.map(slug => localStorage.getItem(colorKey(slug)) || '#'+Math.floor(Math.random()*16777215).toString(16)),
+          label: 'Total Minutes'
+        }];
+        labels = slugs.map(slug => {
+          const emoji = localStorage.getItem(emojiKey(slug)) || '';
+          return emoji ? `${emoji} ${slug}` : slug;
+        });
+        type = 'pie';
+      } else {
+        datasets = Object.keys(dataBySlug).map(slug => {
+          const color = localStorage.getItem(colorKey(slug)) || '#' + Math.floor(Math.random()*16777215).toString(16);
+          const emoji = localStorage.getItem(emojiKey(slug)) || '';
+          return {
+            label: emoji ? `${emoji} ${slug}` : slug,
+            data: labels.map(date => dataBySlug[slug][date] || 0),
+            fill: false,
+            borderColor: color,
+            backgroundColor: color,
+            tension: 0.2
+          };
+        });
+        if (chartType === 'stackedBar') type = 'bar';
+      }
 
       if (window.practiceChart && typeof window.practiceChart.destroy === 'function') {
         window.practiceChart.destroy();
       }
+
       window.practiceChart = new Chart(ctx, {
-        type: 'line',
+        type: type,
         data: { labels, datasets },
         options: {
           responsive: true,
           plugins: { legend: { position: 'bottom' } },
-          scales: { y: { beginAtZero: true, title: { display: true, text: 'Minutes' } } }
+          scales: chartType === 'pie' ? {} : {
+            x: chartType === 'stackedBar' ? { stacked:true } : {},
+            y: chartType === 'stackedBar' ? { stacked:true, beginAtZero:true, title:{display:true,text:'Minutes Practiced'}} :
+                { beginAtZero:true, title:{display:true,text:'Minutes Practiced'} }
+          }
         }
       });
     }
 
+    function encodeSettings() {
+      const data = {};
+      LS_KEYS.forEach(k => data[k] = localStorage.getItem(k) || '');
+      const slugs = (localStorage.getItem('slugs') || '').split(',').map(s=>s.trim()).filter(Boolean);
+      data.slugMeta = {};
+      slugs.forEach(slug=>{
+        data.slugMeta[slug] = {
+          color: localStorage.getItem(colorKey(slug)) || '',
+          emoji: localStorage.getItem(emojiKey(slug)) || ''
+        };
+      });
+      return btoa(encodeURIComponent(JSON.stringify(data)));
+    }
+
+    document.getElementById('shareSettings').addEventListener('click',()=>{
+      const encoded = encodeSettings();
+      const url = `${location.origin}${location.pathname}?s=${encoded}`;
+      navigator.clipboard.writeText(url).then(()=>alert('Shareable link copied!'));
+    });
+
+    function loadFromQuery() {
+      const params = new URLSearchParams(location.search);
+      if (params.has('s')) {
+        try {
+          const decoded = JSON.parse(decodeURIComponent(atob(params.get('s'))));
+          for (const k of LS_KEYS) localStorage.setItem(k, decoded[k] || '');
+          if (decoded.slugMeta) {
+            Object.keys(decoded.slugMeta).forEach(slug=>{
+              localStorage.setItem(colorKey(slug), decoded.slugMeta[slug].color || '');
+              localStorage.setItem(emojiKey(slug), decoded.slugMeta[slug].emoji || '');
+            });
+          }
+          window.history.replaceState({}, document.title, location.pathname);
+          return true;
+        } catch(e) { console.error('Invalid shared settings', e); }
+      }
+      return false;
+    }
+
+    const fromQuery = loadFromQuery();
     const hasSettings = loadSettings();
     toggleSettings(!hasSettings);
-    if (hasSettings) refreshData();
+    if (hasSettings || fromQuery) refreshData();
   </script>
 </body>
 </html>
