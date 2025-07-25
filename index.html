@@ -9,12 +9,13 @@
     body { font-family: system-ui, sans-serif; background: #fafafa; color: #222; margin: 0; padding: 1rem; }
     header { text-align: center; padding: 1rem 0; border-bottom: 1px solid #ddd; }
     h1 { margin: 0; font-size: 1.6rem; }
-    #settings { max-width: 600px; margin: 1rem auto; background: #fff; padding: 1rem; border-radius: 8px;
+    #settings { max-width: 650px; margin: 1rem auto; background: #fff; padding: 1rem; border-radius: 8px;
       box-shadow: 0 2px 4px rgba(0,0,0,0.05);}
     label { display: block; margin-top: 0.5rem; font-size: 0.9rem; }
     input, select { width: 100%; padding: 0.4rem; margin-top: 0.2rem; border: 1px solid #ccc; border-radius: 4px;}
     .slug-options { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.2rem; }
     .slug-options input[type="color"] { width: 40px; padding: 0; }
+    .slug-options input[data-slug-xp] { width: 60px; }
     button { margin-top: 1rem; padding: 0.5rem 1rem; border: none; background: #0077cc; color: white;
       border-radius: 4px; cursor: pointer; font-size: 0.9rem; }
     button:hover { background: #005fa3; }
@@ -24,6 +25,10 @@
     .clear-btn { margin-top: 0.3rem; background: #999; }
     .settings-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; }
     #shareSettings { background:#28a745; }
+    #xpBar { height: 24px; display: flex; margin-top: 1rem; border-radius: 6px; overflow: hidden; position: relative; }
+    #xpBarLabels { display: flex; height: 24px; margin-top: 2px; font-size: 0.8rem; }
+    #xpBarLabels div { text-align: center; color: #000; font-weight: bold; display: flex; align-items: center; justify-content: center; }
+    #streakInfo { margin-top: 1rem; font-size: 0.9rem; text-align: center; }
     footer { text-align: center; margin-top: 2rem; font-size: 0.8rem; color: #666; }
   </style>
 </head>
@@ -51,6 +56,7 @@
       <input type="date" id="endDate">
     </label>
     <button class="clear-btn" id="clearEndDate">Clear End Date</button>
+    <button class="clear-btn" id="clearCache">Clear Cache</button>
 
     <label>Chart Type:
       <select id="chartType">
@@ -73,6 +79,9 @@
 
   <div id="chartContainer">
     <canvas id="practiceChart"></canvas>
+    <div id="xpBar"></div>
+    <div id="xpBarLabels"></div>
+    <div id="streakInfo"></div>
   </div>
 
   <footer>
@@ -83,6 +92,8 @@
     const LS_KEYS = ['username', 'repo', 'slugs', 'startDate', 'endDate', 'chartType'];
     const colorKey = slug => `color_${slug}`;
     const emojiKey = slug => `emoji_${slug}`;
+    const xpKey = slug => `xp_${slug}`;
+    const cacheKey = (slug,date)=>`logcache_${slug}_${date}`;
 
     function loadSettings() {
       let hasData = true;
@@ -110,13 +121,15 @@
       slugs.forEach(slug => {
         const colorVal = localStorage.getItem(colorKey(slug)) || '#0077cc';
         const emojiVal = localStorage.getItem(emojiKey(slug)) || '';
+        const xpVal = localStorage.getItem(xpKey(slug)) || '1';
         const div = document.createElement('div');
         div.className = 'slug-options';
         div.innerHTML = `
           <span>${slug}</span>
           <input type="color" data-slug="${slug}" value="${colorVal}">
-          <input type="text" placeholder="Color name" data-slug-color="${slug}" value="${colorVal}">
+          <input type="text" placeholder="Color" data-slug-color="${slug}" value="${colorVal}">
           <input type="text" placeholder="Emoji" maxlength="2" data-slug-emoji="${slug}" value="${emojiVal}">
+          <input type="number" placeholder="XP/min" min="0" step="1" data-slug-xp="${slug}" value="${xpVal}">
         `;
         slugContainer.appendChild(div);
       });
@@ -124,16 +137,16 @@
 
     function saveSlugOptions() {
       document.querySelectorAll('input[data-slug]').forEach(inp => {
-        const slug = inp.dataset.slug;
-        localStorage.setItem(colorKey(slug), inp.value);
+        localStorage.setItem(colorKey(inp.dataset.slug), inp.value);
       });
       document.querySelectorAll('input[data-slug-color]').forEach(inp => {
-        const slug = inp.dataset.slugColor;
-        if (inp.value.trim()) localStorage.setItem(colorKey(slug), inp.value.trim());
+        if (inp.value.trim()) localStorage.setItem(colorKey(inp.dataset.slugColor), inp.value.trim());
       });
       document.querySelectorAll('input[data-slug-emoji]').forEach(inp => {
-        const slug = inp.dataset.slugEmoji;
-        localStorage.setItem(emojiKey(slug), inp.value.trim());
+        localStorage.setItem(emojiKey(inp.dataset.slugEmoji), inp.value.trim());
+      });
+      document.querySelectorAll('input[data-slug-xp]').forEach(inp => {
+        localStorage.setItem(xpKey(inp.dataset.slugXp), inp.value.trim() || '1');
       });
     }
 
@@ -150,8 +163,7 @@
     }
 
     document.getElementById('toggleSettings').addEventListener('click', () => {
-      const settings = document.getElementById('settings');
-      toggleSettings(settings.style.display === 'none');
+      toggleSettings(document.getElementById('settings').style.display === 'none');
     });
 
     document.getElementById('updateSettings').addEventListener('click', () => {
@@ -163,6 +175,13 @@
     document.getElementById('clearEndDate').addEventListener('click', () => {
       document.getElementById('endDate').value = '';
       localStorage.removeItem('endDate');
+    });
+
+    document.getElementById('clearCache').addEventListener('click', () => {
+      Object.keys(localStorage).forEach(k=>{
+        if (k.startsWith('logcache_')) localStorage.removeItem(k);
+      });
+      alert('Cache cleared!');
     });
 
     async function fetchLog(url) {
@@ -206,15 +225,25 @@
       for (const slug of slugs) {
         dataBySlug[slug] = {};
         for (const date of dateRange) {
-          const [y, m, d] = date.split('-');
-          const url = `https://${username}.github.io/${repo}/${slug}/${y}/${m}/${d}.json`;
-          const logs = await fetchLog(url);
-          const total = logs.reduce((sum, entry) => sum + parseInt(entry.minutes || 0, 10), 0);
-          dataBySlug[slug][date] = total;
+          const key = cacheKey(slug,date);
+          let total;
+          const cached = localStorage.getItem(key);
+          if (cached !== null) {
+            total = parseInt(cached,10);
+          } else {
+            const [y,m,d] = date.split('-');
+            const url = `https://${username}.github.io/${repo}/${slug}/${y}/${m}/${d}.json`;
+            let logs = await fetchLog(url);
+            if (!Array.isArray(logs)) logs = [];
+            total = logs.reduce((sum, entry) => sum + parseInt(entry.minutes || 0, 10), 0);
+            localStorage.setItem(key,total);
+          }
+          dataBySlug[slug][date] = isNaN(total) ? 0 : total;
         }
       }
 
       drawChart(dateRange, dataBySlug, chartType);
+      calculateXPandStreaks(dateRange, dataBySlug);
     }
 
     function drawChart(labels, dataBySlug, chartType) {
@@ -271,6 +300,62 @@
       });
     }
 
+    function calculateXPandStreaks(dateRange, dataBySlug) {
+      const xpTotals = {};
+      let totalXP = 0;
+
+      Object.keys(dataBySlug).forEach(slug=>{
+        const xpPerMin = parseInt(localStorage.getItem(xpKey(slug)) || '1',10);
+        const minutes = Object.values(dataBySlug[slug]).reduce((a,b)=>a+b,0);
+        const xp = minutes * xpPerMin;
+        xpTotals[slug] = xp;
+        totalXP += xp;
+      });
+
+      const xpBar = document.getElementById('xpBar');
+      xpBar.innerHTML = '';
+      Object.keys(xpTotals).forEach(slug=>{
+        const color = localStorage.getItem(colorKey(slug)) || '#0077cc';
+        const emoji = localStorage.getItem(emojiKey(slug)) || '';
+        const width = totalXP > 0 ? (xpTotals[slug]/totalXP*100).toFixed(2) : 0;
+        const seg = document.createElement('div');
+        seg.className='xp-segment';
+        seg.style.background=color;
+        seg.style.width=width+'%';
+        seg.title = `${emoji?emoji+' ':''}${slug}: ${xpTotals[slug]} XP`;
+        xpBar.appendChild(seg);
+      });
+
+      const xpBarLabels = document.getElementById('xpBarLabels');
+      xpBarLabels.innerHTML = '';
+      Object.keys(xpTotals).forEach(slug=>{
+        const width = totalXP > 0 ? (xpTotals[slug]/totalXP*100).toFixed(2) : 0;
+        const labelDiv = document.createElement('div');
+        labelDiv.style.width = width + '%';
+        labelDiv.textContent = xpTotals[slug] + ' XP';
+        xpBarLabels.appendChild(labelDiv);
+      });
+
+      const today = new Date().toISOString().split('T')[0];
+      let currentStreak = 0, maxStreak = 0, minStreak = Infinity, streak = 0;
+
+      for (const date of dateRange) {
+        const totalMins = Object.keys(dataBySlug).reduce((sum,slug)=>sum+ (dataBySlug[slug][date]||0),0);
+        if (totalMins > 0) {
+          streak++;
+          if (streak > maxStreak) maxStreak = streak;
+        } else {
+          if (streak>0 && streak < minStreak) minStreak = streak;
+          streak = 0;
+        }
+        if (date === today) currentStreak = streak;
+      }
+      if (minStreak === Infinity) minStreak = 0;
+
+      document.getElementById('streakInfo').textContent =
+        `Total XP: ${totalXP} | Current Streak: ${currentStreak} days | Max Streak: ${maxStreak} days | Min Streak: ${minStreak} days`;
+    }
+
     function encodeSettings() {
       const data = {};
       LS_KEYS.forEach(k => data[k] = localStorage.getItem(k) || '');
@@ -279,7 +364,8 @@
       slugs.forEach(slug=>{
         data.slugMeta[slug] = {
           color: localStorage.getItem(colorKey(slug)) || '',
-          emoji: localStorage.getItem(emojiKey(slug)) || ''
+          emoji: localStorage.getItem(emojiKey(slug)) || '',
+          xp: localStorage.getItem(xpKey(slug)) || '1'
         };
       });
       return btoa(encodeURIComponent(JSON.stringify(data)));
@@ -301,6 +387,7 @@
             Object.keys(decoded.slugMeta).forEach(slug=>{
               localStorage.setItem(colorKey(slug), decoded.slugMeta[slug].color || '');
               localStorage.setItem(emojiKey(slug), decoded.slugMeta[slug].emoji || '');
+              localStorage.setItem(xpKey(slug), decoded.slugMeta[slug].xp || '1');
             });
           }
           window.history.replaceState({}, document.title, location.pathname);
