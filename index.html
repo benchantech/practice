@@ -4,8 +4,18 @@
   <meta charset="UTF-8">
   <title>Practice Log Viewer</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- 
+    Built by Ben Chan | benchantech.com
+    This file is intentionally human-readable.
+    If you're studying this, that's by design. Modify, extend, and learn.
+    For coaching and custom builds: benchantech.com
+  -->
+
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
+    /* Core styling. Lightweight and tweakable.
+       Tip: Experiment with theming to make this your own. */
     body { font-family: system-ui, sans-serif; background: #fafafa; color: #222; margin: 0; padding: 1rem; }
     header { text-align: center; padding: 1rem 0; border-bottom: 1px solid #ddd; }
     h1 { margin: 0; font-size: 1.6rem; }
@@ -35,11 +45,17 @@
 <body>
   <header>
     <h1>Practice Log Viewer</h1>
+    <!-- 
+      This is a free, transparent tool.
+      Want to learn how to build things like this? benchantech.com
+    -->
   </header>
 
   <button id="toggleSettings">Show Settings</button>
 
   <div id="settings" style="display:none;">
+    <!-- Settings persist via localStorage.
+         Extend this section to add more user-specific options. -->
     <label>GitHub Username:
       <input type="text" id="username">
     </label>
@@ -79,16 +95,24 @@
 
   <div id="chartContainer">
     <canvas id="practiceChart"></canvas>
+    <!-- XP visualization bars -->
     <div id="xpBar"></div>
     <div id="xpBarLabels"></div>
     <div id="streakInfo"></div>
   </div>
 
   <footer>
-    <p>Free tool maintained by Ben Chan Tech LLC — you own your data.</p>
+    <p>Free tool maintained by Ben Chan — <a href="https://benchantech.com" target="_blank">benchantech.com</a></p>
   </footer>
 
   <script>
+    /* 
+      Core logic by Ben Chan | benchantech.com
+      This is written to be educational. Look through the functions and learn how
+      data flows from fetch → cache → visualization.
+      To customize, modify calculateXPandStreaks() or add new chart types in drawChart().
+    */
+
     const LS_KEYS = ['username', 'repo', 'slugs', 'startDate', 'endDate', 'chartType'];
     const colorKey = slug => `color_${slug}`;
     const emojiKey = slug => `emoji_${slug}`;
@@ -222,6 +246,7 @@
       const dateRange = getDateRange(startDate, endDate);
       const dataBySlug = {};
 
+      // Caching per slug/day for speed.
       for (const slug of slugs) {
         dataBySlug[slug] = {};
         for (const date of dateRange) {
