@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Practice Log Viewer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 1rem; }
+    #settings { border: 1px solid #ccc; padding: 1rem; margin-bottom: 1rem; }
+    label { display: block; margin-top: 0.5rem; }
+    input { width: 100%; padding: 0.25rem; }
+    button { margin-top: 0.5rem; padding: 0.5rem 1rem; }
+    #chartContainer { width: 100%; max-width: 800px; margin: 0 auto; }
+  </style>
+</head>
+<body>
+  <h1>Practice Log Viewer</h1>
+  <button id="toggleSettings"></button>
+
+  <div id="settings">
+    <label>GitHub Username:
+      <input type="text" id="username">
+    </label>
+    <label>Public Repo Name:
+      <input type="text" id="repo">
+    </label>
+    <label>Practice Log Slugs (comma-separated):
+      <input type="text" id="slugs">
+    </label>
+    <label>Start Date:
+      <input type="date" id="startDate">
+    </label>
+    <label>End Date (optional):
+      <input type="date" id="endDate">
+    </label>
+    <button id="updateSettings">Update</button>
+  </div>
+
+  <div id="chartContainer">
+    <canvas id="practiceChart"></canvas>
+  </div>
+
+  <script>
+    const LS_KEYS = ['username', 'repo', 'slugs', 'startDate', 'endDate'];
+
+    function loadSettings() {
+      let hasData = true;
+      LS_KEYS.forEach(k => {
+        const val = localStorage.getItem(k);
+        if (val) document.getElementById(k).value = val;
+        else if (k !== 'endDate') hasData = false;
+      });
+      return hasData;
+    }
+
+    function saveSettings() {
+      LS_KEYS.forEach(k => {
+        const val = document.getElementById(k).value.trim();
+        if (val || k === 'endDate') localStorage.setItem(k, val);
+      });
+    }
+
+    function toggleSettings(show) {
+      const settings = document.getElementById('settings');
+      const btn = document.getElementById('toggleSettings');
+      if (show) {
+        settings.style.display = 'block';
+        btn.textContent = 'Hide Settings';
+      } else {
+        settings.style.display = 'none';
+        btn.textContent = 'Show Settings';
+      }
+    }
+
+    document.getElementById('toggleSettings').addEventListener('click', () => {
+      const settings = document.getElementById('settings');
+      toggleSettings(settings.style.display === 'none');
+    });
+
+    document.getElementById('updateSettings').addEventListener('click', () => {
+      saveSettings();
+      toggleSettings(false);
+      refreshData();
+    });
+
+    async function fetchLog(url) {
+      try {
+        const res = await fetch(url);
+        if (!res.ok) return [];
+        return await res.json();
+      } catch {
+        return [];
+      }
+    }
+
+    function getDateRange(start, end) {
+      const dates = [];
+      let cur = new Date(start);
+      const endDate = end ? new Date(end) : new Date();
+      while (cur <= endDate) {
+        dates.push(cur.toISOString().split('T')[0]);
+        cur.setDate(cur.getDate() + 1);
+      }
+      return dates;
+    }
+
+    async function refreshData() {
+      const username = localStorage.getItem('username');
+      const repo = localStorage.getItem('repo');
+      const slugs = (localStorage.getItem('slugs') || '').split(',').map(s => s.trim()).filter(Boolean);
+      const startDate = localStorage.getItem('startDate');
+      const endDate = localStorage.getItem('endDate');
+
+      if (!username || !repo || !slugs.length || !startDate) {
+        alert('Please fill in all required settings.');
+        toggleSettings(true);
+        return;
+      }
+
+      const dateRange = getDateRange(startDate, endDate);
+      const dataBySlug = {};
+
+      for (const slug of slugs) {
+        dataBySlug[slug] = {};
+        for (const date of dateRange) {
+          const [y, m, d] = date.split('-');
+          const url = `https://${username}.github.io/${repo}/${slug}/${y}/${m}/${d}.json`;
+          const logs = await fetchLog(url);
+          const total = logs.reduce((sum, entry) => sum + parseInt(entry.minutes || 0, 10), 0);
+          dataBySlug[slug][date] = total;
+        }
+      }
+
+      drawChart(dateRange, dataBySlug);
+    }
+
+    function drawChart(labels, dataBySlug) {
+      const ctx = document.getElementById('practiceChart').getContext('2d');
+      const datasets = Object.keys(dataBySlug).map(slug => ({
+        label: slug,
+        data: labels.map(date => dataBySlug[slug][date] || 0),
+        fill: false,
+        borderColor: '#' + Math.floor(Math.random()*16777215).toString(16),
+        tension: 0.1
+      }));
+
+      if (window.practiceChart && typeof window.practiceChart.destroy === 'function') {
+        window.practiceChart.destroy();
+      }
+      window.practiceChart = new Chart(ctx, {
+        type: 'line',
+        data: { labels, datasets },
+        options: {
+          responsive: true,
+          plugins: { legend: { position: 'bottom' } },
+          scales: { y: { beginAtZero: true, title: { display: true, text: 'Minutes' } } }
+        }
+      });
+    }
+
+    const hasSettings = loadSettings();
+    toggleSettings(!hasSettings);
+    if (hasSettings) refreshData();
+  </script>
+</body>
+</html>
