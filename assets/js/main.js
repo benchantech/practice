@@ -10,7 +10,7 @@ function randomColor() {
   return '#'+Math.floor(Math.random()*16777215).toString(16);
 }
 
-/* Parse Google Sheets CSV file with correct ordering */
+/* Convert Google Sheets link to CSV */
 function toCsvLink(originalUrl) {
   const match = originalUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
   if (!match) return null; // invalid URL
@@ -18,9 +18,13 @@ function toCsvLink(originalUrl) {
   return `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`;
 }
 
+/* Parse Google Sheets CSV file with correct ordering */
 async function parseGoogleSheet(url) {
   try {
-    const res = await fetch(toCsvLink(url));
+    const csvUrl = toCsvLink(url);
+    if (!csvUrl) return null;
+
+    const res = await fetch(csvUrl);
     if (!res.ok) return null;
 
     const text = await res.text();
