@@ -54,12 +54,16 @@ function calculateSkillLevels() {
     // Get level data for this slug
     const levelData = getSkillLevelData(totalMinutes);
 
+    // Get emoji for slug
+    const emoji = localStorage.getItem(`emoji_${slug}`) || '';
+
     results[slug] = {
       minutes: totalMinutes,
       xp: totalXP,
       level: levelData.level,
       title: levelData.name,
-      remainingMinutes: levelData.remainingMinutes
+      remainingMinutes: levelData.remainingMinutes,
+      emoji
     };
   });
 
@@ -82,28 +86,23 @@ function renderSkillLevels() {
 
   // Create table element
   const table = document.createElement('table');
-  table.style.width = '100%';
-  table.style.borderCollapse = 'collapse';
-  table.style.marginTop = '10px';
 
-  // Table header
+  // Table header (first column blank for emojis)
   const headerRow = document.createElement('tr');
-  ['Skill', 'Level', 'Title', 'Total Minutes', 'To Next Level'].forEach(text => {
+  ['', 'Skill', 'Level', 'Title', 'Total Minutes', 'To Next Level'].forEach(text => {
     const th = document.createElement('th');
     th.textContent = text;
-    th.style.borderBottom = '2px solid #ccc';
-    th.style.textAlign = 'left';
-    th.style.padding = '4px 8px';
     headerRow.appendChild(th);
   });
   table.appendChild(headerRow);
 
   // Add one row per slug
   slugs.forEach(slug => {
-    const { level, title, minutes, remainingMinutes } = skills[slug];
+    const { level, title, minutes, remainingMinutes, emoji } = skills[slug];
 
     const row = document.createElement('tr');
     const cells = [
+      emoji,
       slug,
       `Level ${level}`,
       title,
@@ -114,8 +113,6 @@ function renderSkillLevels() {
     cells.forEach(val => {
       const td = document.createElement('td');
       td.textContent = val;
-      td.style.padding = '4px 8px';
-      td.style.borderBottom = '1px solid #eee';
       row.appendChild(td);
     });
 
