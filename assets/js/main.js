@@ -324,6 +324,7 @@ document.getElementById('updateSettings').addEventListener('click',()=>{
     }
   });
   saveSlugOptions();
+  renderSlugOptions(); // refresh slug options in case they changed
   refreshData();
 });
 
