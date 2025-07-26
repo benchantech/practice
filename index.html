@@ -4,6 +4,33 @@
   <meta charset="UTF-8">
   <title>Practice Log Viewer — Ben Chan | benchantech.com</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- SEO + attribution -->
+  <meta name="description" content="Free, transparent practice tracker built by Ben Chan. Learn how to modify and build your own version with coaching at benchantech.com.">
+  <meta name="author" content="Ben Chan">
+  <meta property="og:title" content="Practice Log Viewer — Ben Chan">
+  <meta property="og:description" content="A free, fully transparent practice tracker with XP, streaks, and customization. Built to teach.">
+  <meta property="og:url" content="https://benchantech.com/practice-tracker">
+  <meta property="og:type" content="website">
+
+  <!-- Attribution/license -->
+  <!--
+    Practice Log Viewer v1.0
+    Built by Ben Chan | benchantech.com
+    Licensed under Creative Commons Attribution 4.0 (CC BY 4.0)
+    You are free to use, modify, and share this work with attribution.
+    For custom builds or coaching: https://benchantech.com
+  -->
+
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-25PDJ8VRNT"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-25PDJ8VRNT');
+  </script>
+
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body { font-family: system-ui, sans-serif; background: #fafafa; color: #222; margin: 0; padding: 1rem; }
@@ -25,19 +52,19 @@
     .clear-btn { margin-top: 0.3rem; background: #999; }
     .settings-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; }
     #shareSettings { background:#28a745; }
+    #refreshVisibleDays { background: #17a2b8; margin-bottom: 1rem; float: right; }
     #xpBar { height: 24px; display: flex; margin-top: 1rem; border-radius: 6px; overflow: hidden; position: relative; }
     #xpBarLabels { display: flex; height: 24px; margin-top: 2px; font-size: 0.8rem; }
     #xpBarLabels div { text-align: center; color: #000; font-weight: bold; display: flex; align-items: center; justify-content: center; }
     #streakInfo { margin-top: 1rem; font-size: 0.9rem; text-align: center; }
     footer { text-align: center; margin-top: 2rem; font-size: 0.8rem; color: #666; }
-    .chart-actions { display: flex; justify-content: flex-end; max-width: 800px; margin: 0 auto; padding: 0 1rem; }
-    #refreshVisible { margin-bottom: 0.5rem; background: #28a745; }
-    #refreshVisible:hover { background: #218838; }
+    .chart-header { overflow: hidden; margin-bottom: 1rem; }
   </style>
 </head>
 <body>
   <header>
     <h1>Practice Log Viewer</h1>
+    <!-- Transparent ecosystem built by Ben Chan. Learn to build yours at benchantech.com -->
   </header>
 
   <button id="toggleSettings">Show Settings</button>
@@ -80,10 +107,10 @@
     </div>
   </div>
 
-  <div class="chart-actions">
-    <button id="refreshVisible">Refresh Visible Days</button>
-  </div>
   <div id="chartContainer">
+    <div class="chart-header">
+      <button id="refreshVisibleDays">Refresh Visible Days</button>
+    </div>
     <canvas id="practiceChart"></canvas>
     <div id="xpBar"></div>
     <div id="xpBarLabels"></div>
@@ -96,143 +123,402 @@
   </footer>
 
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      console.log("%cPractice Log Viewer built by Ben Chan | https://benchantech.com", "color: #0077cc; font-weight: bold;");
+    console.log("%cPractice Log Viewer built by Ben Chan | https://benchantech.com", "color: #0077cc; font-weight: bold;");
 
-      const LS_KEYS = ['username', 'repo', 'slugs', 'startDate', 'endDate', 'chartType'];
-      const colorKey = slug => `color_${slug}`;
-      const emojiKey = slug => `emoji_${slug}`;
-      const xpKey = slug => `xp_${slug}`;
-      const cacheKey = (slug,date)=>`logcache_${slug}_${date}`;
+    const LS_KEYS = ['username', 'repo', 'slugs', 'startDate', 'endDate', 'chartType'];
+    const colorKey = slug => `color_${slug}`;
+    const emojiKey = slug => `emoji_${slug}`;
+    const xpKey = slug => `xp_${slug}`;
+    const cacheKey = (slug,date) => `logcache_${slug}_${date}`;
 
-      function loadFromQuery() {
-        const params = new URLSearchParams(location.search);
-        if (params.has('s')) {
-          try {
-            const decoded = JSON.parse(decodeURIComponent(atob(params.get('s'))));
-            for (const k of LS_KEYS) localStorage.setItem(k, decoded[k] || '');
-            if (decoded.slugMeta) {
-              Object.keys(decoded.slugMeta).forEach(slug=>{
-                localStorage.setItem(colorKey(slug), decoded.slugMeta[slug].color || '');
-                localStorage.setItem(emojiKey(slug), decoded.slugMeta[slug].emoji || '');
-                localStorage.setItem(xpKey(slug), decoded.slugMeta[slug].xp || '1');
-              });
-            }
-            window.history.replaceState({}, document.title, location.pathname);
-            return true;
-          } catch(e) { console.error('Invalid shared settings', e); }
-        }
-        return false;
-      }
-
-      function loadSettings() {
-        let hasData = true;
-        LS_KEYS.forEach(k => {
-          const val = localStorage.getItem(k);
-          if (val) document.getElementById(k).value = val;
-          else if (k !== 'endDate') hasData = false;
-        });
-        renderSlugOptions();
-        return hasData;
-      }
-
-      function saveSettings() {
-        LS_KEYS.forEach(k => {
-          const val = document.getElementById(k).value.trim();
-          if (val || k === 'endDate') localStorage.setItem(k, val);
-        });
-        saveSlugOptions();
-      }
-
-      function renderSlugOptions() {
-        const slugContainer = document.getElementById('slugSettings');
-        slugContainer.innerHTML = '';
-        const slugs = (document.getElementById('slugs').value || '').split(',').map(s => s.trim()).filter(Boolean);
-        slugs.forEach(slug => {
-          const colorVal = localStorage.getItem(colorKey(slug)) || '#0077cc';
-          const emojiVal = localStorage.getItem(emojiKey(slug)) || '';
-          const xpVal = localStorage.getItem(xpKey(slug)) || '1';
-          const div = document.createElement('div');
-          div.className = 'slug-options';
-          div.innerHTML = `
-            <span>${slug}</span>
-            <input type="color" data-slug="${slug}" value="${colorVal}">
-            <input type="text" placeholder="Color" data-slug-color="${slug}" value="${colorVal}">
-            <input type="text" placeholder="Emoji" maxlength="2" data-slug-emoji="${slug}" value="${emojiVal}">
-            <input type="number" placeholder="XP/min" min="0" step="1" data-slug-xp="${slug}" value="${xpVal}">
-          `;
-          slugContainer.appendChild(div);
-        });
-      }
-
-      function saveSlugOptions() {
-        document.querySelectorAll('input[data-slug]').forEach(inp => {
-          localStorage.setItem(colorKey(inp.dataset.slug), inp.value);
-        });
-        document.querySelectorAll('input[data-slug-color]').forEach(inp => {
-          if (inp.value.trim()) localStorage.setItem(colorKey(inp.dataset.slugColor), inp.value.trim());
-        });
-        document.querySelectorAll('input[data-slug-emoji]').forEach(inp => {
-          localStorage.setItem(emojiKey(inp.dataset.slugEmoji), inp.value.trim());
-        });
-        document.querySelectorAll('input[data-slug-xp]').forEach(inp => {
-          localStorage.setItem(xpKey(inp.dataset.slugXp), inp.value.trim() || '1');
-        });
-      }
-
-      function toggleSettings(show) {
-        const settings = document.getElementById('settings');
-        const btn = document.getElementById('toggleSettings');
-        if (show) {
-          settings.style.display = 'block';
-          btn.textContent = 'Hide Settings';
-        } else {
-          settings.style.display = 'none';
-          btn.textContent = 'Show Settings';
-        }
-      }
-
-      document.getElementById('toggleSettings').addEventListener('click', () => {
-        toggleSettings(document.getElementById('settings').style.display === 'none');
+    function loadSettings() {
+      let hasData = true;
+      LS_KEYS.forEach(k => {
+        const val = localStorage.getItem(k);
+        if (val) document.getElementById(k).value = val;
+        else if (k !== 'endDate') hasData = false;
       });
+      renderSlugOptions();
+      return hasData;
+    }
 
-      document.getElementById('updateSettings').addEventListener('click', () => {
-        saveSettings();
-        toggleSettings(false);
-        refreshData();
+    function saveSettings() {
+      LS_KEYS.forEach(k => {
+        const val = document.getElementById(k).value.trim();
+        if (val || k === 'endDate') localStorage.setItem(k, val);
       });
+      saveSlugOptions();
+    }
 
-      document.getElementById('clearEndDate').addEventListener('click', () => {
-        document.getElementById('endDate').value = '';
-        localStorage.removeItem('endDate');
+    function renderSlugOptions() {
+      const slugContainer = document.getElementById('slugSettings');
+      slugContainer.innerHTML = '';
+      const slugs = (document.getElementById('slugs').value || '').split(',').map(s => s.trim()).filter(Boolean);
+      slugs.forEach(slug => {
+        const colorVal = localStorage.getItem(colorKey(slug)) || '#0077cc';
+        const emojiVal = localStorage.getItem(emojiKey(slug)) || '';
+        const xpVal = localStorage.getItem(xpKey(slug)) || '1';
+        const div = document.createElement('div');
+        div.className = 'slug-options';
+        div.innerHTML = `
+          <span>${slug}</span>
+          <input type="color" data-slug="${slug}" value="${colorVal}">
+          <input type="text" placeholder="Color" data-slug-color="${slug}" value="${colorVal}">
+          <input type="text" placeholder="Emoji" maxlength="2" data-slug-emoji="${slug}" value="${emojiVal}">
+          <input type="number" placeholder="XP/min" min="0" step="1" data-slug-xp="${slug}" value="${xpVal}">
+        `;
+        slugContainer.appendChild(div);
       });
+    }
 
-      document.getElementById('clearCache').addEventListener('click', () => {
-        if (confirm("This will reset all practice logs and you will have to set the Start Date back to the beginning to recover lost data.  Proceed?")) {
-          Object.keys(localStorage).forEach(k=>{
-            if (k.startsWith('logcache_')) localStorage.removeItem(k);
-          });
-          alert('Cache cleared!');
-        }
+    function saveSlugOptions() {
+      document.querySelectorAll('input[data-slug]').forEach(inp => {
+        localStorage.setItem(colorKey(inp.dataset.slug), inp.value);
       });
-
-      document.getElementById('refreshVisible').addEventListener('click', async () => {
-        await refreshData(true);
+      document.querySelectorAll('input[data-slug-color]').forEach(inp => {
+        if (inp.value.trim()) localStorage.setItem(colorKey(inp.dataset.slugColor), inp.value.trim());
       });
-
-      document.getElementById('shareSettings').addEventListener('click',()=>{
-        const encoded = encodeSettings();
-        const url = `${location.origin}${location.pathname}?s=${encoded}`;
-        navigator.clipboard.writeText(url).then(()=>alert('Shareable link copied!'));
+      document.querySelectorAll('input[data-slug-emoji]').forEach(inp => {
+        localStorage.setItem(emojiKey(inp.dataset.slugEmoji), inp.value.trim());
       });
+      document.querySelectorAll('input[data-slug-xp]').forEach(inp => {
+        localStorage.setItem(xpKey(inp.dataset.slugXp), inp.value.trim() || '1');
+      });
+    }
 
-      // --- include refreshData, drawChart, calculateXPandStreaks here (with forceRefetch support and XP from all time) ---
+    function toggleSettings(show) {
+      const settings = document.getElementById('settings');
+      const btn = document.getElementById('toggleSettings');
+      if (show) {
+        settings.style.display = 'block';
+        btn.textContent = 'Hide Settings';
+      } else {
+        settings.style.display = 'none';
+        btn.textContent = 'Show Settings';
+      }
+    }
 
-      const fromQuery = loadFromQuery();
-      const hasSettings = loadSettings();
-      toggleSettings(!hasSettings);
-      if (hasSettings || fromQuery) refreshData();
+    document.getElementById('toggleSettings').addEventListener('click', () => {
+      toggleSettings(document.getElementById('settings').style.display === 'none');
     });
+
+    document.getElementById('updateSettings').addEventListener('click', () => {
+      saveSettings();
+      toggleSettings(false);
+      refreshData();
+    });
+
+    document.getElementById('clearEndDate').addEventListener('click', () => {
+      document.getElementById('endDate').value = '';
+      localStorage.removeItem('endDate');
+    });
+
+    document.getElementById('clearCache').addEventListener('click', () => {
+      const confirmed = confirm('This will reset all practice logs and you will have to set the Start Date back to the beginning to recover lost data. Proceed?');
+      if (confirmed) {
+        Object.keys(localStorage).forEach(k => {
+          if (k.startsWith('logcache_')) localStorage.removeItem(k);
+        });
+        alert('Cache cleared!');
+      }
+    });
+
+    document.getElementById('refreshVisibleDays').addEventListener('click', () => {
+      refreshVisibleDays();
+    });
+
+    async function fetchLog(url) {
+      try {
+        const res = await fetch(url);
+        if (!res.ok) return [];
+        return await res.json();
+      } catch {
+        return [];
+      }
+    }
+
+    function getDateRange(start, end) {
+      const dates = [];
+      let cur = new Date(start);
+      const endDate = end ? new Date(end) : new Date();
+      while (cur <= endDate) {
+        dates.push(cur.toISOString().split('T')[0]);
+        cur.setDate(cur.getDate() + 1);
+      }
+      return dates;
+    }
+
+    // Get all dates from first practice log to today for XP calculation
+    function getAllTimeRange() {
+      const username = localStorage.getItem('username');
+      const repo = localStorage.getItem('repo');
+      const slugs = (localStorage.getItem('slugs') || '').split(',').map(s => s.trim()).filter(Boolean);
+      
+      if (!username || !repo || !slugs.length) return [];
+      
+      // Find earliest date in cache
+      let earliestDate = null;
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('logcache_')) {
+          const parts = key.split('_');
+          if (parts.length >= 3) {
+            const date = parts.slice(2).join('_');
+            if (!earliestDate || date < earliestDate) {
+              earliestDate = date;
+            }
+          }
+        }
+      });
+      
+      if (!earliestDate) {
+        // Fallback to start date if no cache
+        earliestDate = localStorage.getItem('startDate');
+      }
+      
+      if (!earliestDate) return [];
+      
+      return getDateRange(earliestDate, null); // null = today
+    }
+
+    async function refreshVisibleDays() {
+      const username = localStorage.getItem('username');
+      const repo = localStorage.getItem('repo');
+      const slugs = (localStorage.getItem('slugs') || '').split(',').map(s => s.trim()).filter(Boolean);
+      const startDate = localStorage.getItem('startDate');
+      const endDate = localStorage.getItem('endDate');
+
+      if (!username || !repo || !slugs.length || !startDate) {
+        alert('Please fill in all required settings.');
+        toggleSettings(true);
+        return;
+      }
+
+      const dateRange = getDateRange(startDate, endDate);
+      
+      // Clear cache for visible range and refetch
+      for (const slug of slugs) {
+        for (const date of dateRange) {
+          const key = cacheKey(slug, date);
+          localStorage.removeItem(key); // Remove from cache to force refetch
+        }
+      }
+      
+      // Refresh the data
+      refreshData();
+    }
+
+    async function refreshData() {
+      const username = localStorage.getItem('username');
+      const repo = localStorage.getItem('repo');
+      const slugs = (localStorage.getItem('slugs') || '').split(',').map(s => s.trim()).filter(Boolean);
+      const startDate = localStorage.getItem('startDate');
+      const endDate = localStorage.getItem('endDate');
+      const chartType = localStorage.getItem('chartType') || 'line';
+
+      if (!username || !repo || !slugs.length || !startDate) {
+        alert('Please fill in all required settings.');
+        toggleSettings(true);
+        return;
+      }
+
+      const dateRange = getDateRange(startDate, endDate);
+      const dataBySlug = {};
+
+      for (const slug of slugs) {
+        dataBySlug[slug] = {};
+        for (const date of dateRange) {
+          const key = cacheKey(slug, date);
+          let total;
+          const cached = localStorage.getItem(key);
+          if (cached !== null) {
+            total = parseInt(cached, 10);
+          } else {
+            const [y, m, d] = date.split('-');
+            const url = `https://${username}.github.io/${repo}/${slug}/${y}/${m}/${d}.json`;
+            let logs = await fetchLog(url);
+            if (!Array.isArray(logs)) logs = [];
+            total = logs.reduce((sum, entry) => sum + parseInt(entry.minutes || 0, 10), 0);
+            localStorage.setItem(key, total);
+          }
+          dataBySlug[slug][date] = isNaN(total) ? 0 : total;
+        }
+      }
+
+      drawChart(dateRange, dataBySlug, chartType);
+      calculateXPandStreaks(dataBySlug);
+    }
+
+    function drawChart(labels, dataBySlug, chartType) {
+      const ctx = document.getElementById('practiceChart').getContext('2d');
+      let datasets;
+      let type = chartType;
+
+      if (chartType === 'pie') {
+        const slugs = Object.keys(dataBySlug);
+        const totals = slugs.map(slug => Object.values(dataBySlug[slug]).reduce((a, b) => a + b, 0));
+        datasets = [{
+          data: totals,
+          backgroundColor: slugs.map(slug => localStorage.getItem(colorKey(slug)) || '#' + Math.floor(Math.random() * 16777215).toString(16)),
+          label: 'Total Minutes'
+        }];
+        labels = slugs.map(slug => {
+          const emoji = localStorage.getItem(emojiKey(slug)) || '';
+          return emoji ? `${emoji} ${slug}` : slug;
+        });
+        type = 'pie';
+      } else {
+        datasets = Object.keys(dataBySlug).map(slug => {
+          const color = localStorage.getItem(colorKey(slug)) || '#' + Math.floor(Math.random() * 16777215).toString(16);
+          const emoji = localStorage.getItem(emojiKey(slug)) || '';
+          return {
+            label: emoji ? `${emoji} ${slug}` : slug,
+            data: labels.map(date => dataBySlug[slug][date] || 0),
+            fill: false,
+            borderColor: color,
+            backgroundColor: color,
+            tension: 0.2
+          };
+        });
+        if (chartType === 'stackedBar') type = 'bar';
+      }
+
+      if (window.practiceChart && typeof window.practiceChart.destroy === 'function') {
+        window.practiceChart.destroy();
+      }
+
+      window.practiceChart = new Chart(ctx, {
+        type: type,
+        data: { labels, datasets },
+        options: {
+          responsive: true,
+          plugins: { legend: { position: 'bottom' } },
+          scales: chartType === 'pie' ? {} : {
+            x: chartType === 'stackedBar' ? { stacked: true } : {},
+            y: chartType === 'stackedBar' ? { stacked: true, beginAtZero: true, title: { display: true, text: 'Minutes Practiced' } } :
+                { beginAtZero: true, title: { display: true, text: 'Minutes Practiced' } }
+          }
+        }
+      });
+    }
+
+    async function calculateXPandStreaks(visibleDataBySlug) {
+      const username = localStorage.getItem('username');
+      const repo = localStorage.getItem('repo');
+      const slugs = (localStorage.getItem('slugs') || '').split(',').map(s => s.trim()).filter(Boolean);
+      
+      // Calculate all-time XP from all cached data
+      const allTimeXP = {};
+      let totalXP = 0;
+
+      for (const slug of slugs) {
+        let slugTotal = 0;
+        const xpPerMin = parseInt(localStorage.getItem(xpKey(slug)) || '1', 10);
+        
+        // Sum all cached data for this slug
+        Object.keys(localStorage).forEach(key => {
+          if (key.startsWith(`logcache_${slug}_`)) {
+            const minutes = parseInt(localStorage.getItem(key) || '0', 10);
+            slugTotal += minutes;
+          }
+        });
+        
+        const xp = slugTotal * xpPerMin;
+        allTimeXP[slug] = xp;
+        totalXP += xp;
+      }
+
+      // Update XP bar with all-time data
+      const xpBar = document.getElementById('xpBar');
+      xpBar.innerHTML = '';
+      Object.keys(allTimeXP).forEach(slug => {
+        const color = localStorage.getItem(colorKey(slug)) || '#0077cc';
+        const emoji = localStorage.getItem(emojiKey(slug)) || '';
+        const width = totalXP > 0 ? (allTimeXP[slug] / totalXP * 100).toFixed(2) : 0;
+        const seg = document.createElement('div');
+        seg.className = 'xp-segment';
+        seg.style.background = color;
+        seg.style.width = width + '%';
+        seg.title = `${emoji ? emoji + ' ' : ''}${slug}: ${allTimeXP[slug]} XP`;
+        xpBar.appendChild(seg);
+      });
+
+      const xpBarLabels = document.getElementById('xpBarLabels');
+      xpBarLabels.innerHTML = '';
+      Object.keys(allTimeXP).forEach(slug => {
+        const width = totalXP > 0 ? (allTimeXP[slug] / totalXP * 100).toFixed(2) : 0;
+        const labelDiv = document.createElement('div');
+        labelDiv.style.width = width + '%';
+        labelDiv.textContent = allTimeXP[slug] + ' XP';
+        xpBarLabels.appendChild(labelDiv);
+      });
+
+      // Calculate streaks from visible data
+      const visibleDates = Object.keys(visibleDataBySlug[slugs[0]] || {}).sort();
+      const today = new Date().toISOString().split('T')[0];
+      let currentStreak = 0, maxStreak = 0, minStreak = Infinity, streak = 0;
+
+      for (const date of visibleDates) {
+        const totalMins = Object.keys(visibleDataBySlug).reduce((sum, slug) => sum + (visibleDataBySlug[slug][date] || 0), 0);
+        if (totalMins > 0) {
+          streak++;
+          if (streak > maxStreak) maxStreak = streak;
+        } else {
+          if (streak > 0 && streak < minStreak) minStreak = streak;
+          streak = 0;
+        }
+        if (date === today) currentStreak = streak;
+      }
+      if (minStreak === Infinity) minStreak = 0;
+
+      document.getElementById('streakInfo').textContent =
+        `Total XP: ${totalXP} | Current Streak: ${currentStreak} days | Max Streak: ${maxStreak} days | Min Streak: ${minStreak} days`;
+    }
+
+    function encodeSettings() {
+      const data = {};
+      LS_KEYS.forEach(k => data[k] = localStorage.getItem(k) || '');
+      const slugs = (localStorage.getItem('slugs') || '').split(',').map(s => s.trim()).filter(Boolean);
+      data.slugMeta = {};
+      slugs.forEach(slug => {
+        data.slugMeta[slug] = {
+          color: localStorage.getItem(colorKey(slug)) || '',
+          emoji: localStorage.getItem(emojiKey(slug)) || '',
+          xp: localStorage.getItem(xpKey(slug)) || '1'
+        };
+      });
+      return btoa(encodeURIComponent(JSON.stringify(data)));
+    }
+
+    document.getElementById('shareSettings').addEventListener('click', () => {
+      const encoded = encodeSettings();
+      const url = `${location.origin}${location.pathname}?s=${encoded}`;
+      navigator.clipboard.writeText(url).then(() => alert('Shareable link copied!'));
+    });
+
+    function loadFromQuery() {
+      const params = new URLSearchParams(location.search);
+      if (params.has('s')) {
+        try {
+          const decoded = JSON.parse(decodeURIComponent(atob(params.get('s'))));
+          for (const k of LS_KEYS) localStorage.setItem(k, decoded[k] || '');
+          if (decoded.slugMeta) {
+            Object.keys(decoded.slugMeta).forEach(slug => {
+              localStorage.setItem(colorKey(slug), decoded.slugMeta[slug].color || '');
+              localStorage.setItem(emojiKey(slug), decoded.slugMeta[slug].emoji || '');
+              localStorage.setItem(xpKey(slug), decoded.slugMeta[slug].xp || '1');
+            });
+          }
+          window.history.replaceState({}, document.title, location.pathname);
+          return true;
+        } catch (e) { console.error('Invalid shared settings', e); }
+      }
+      return false;
+    }
+
+    const fromQuery = loadFromQuery();
+    const hasSettings = loadSettings();
+    toggleSettings(!hasSettings);
+    if (hasSettings || fromQuery) refreshData();
   </script>
 </body>
 </html>
