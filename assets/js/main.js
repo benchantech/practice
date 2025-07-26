@@ -279,20 +279,17 @@ function drawChart(labels, dataBySlug, chartType) {
   const canvas = document.getElementById('practiceChart');
   const ctx = canvas.getContext('2d');
 
-  // ✅ Shorten YYYY-MM-DD → MM-DD
   const displayLabels = labels.map(d => d.includes('-') ? d.slice(5) : d);
 
-  // ✅ Apply fixed height on mobile only ONCE
+  // ✅ Only lock height on mobile
   if (window.innerWidth <= 600 && !canvas.dataset.fixedHeight) {
-    canvas.removeAttribute('width');  // let Chart.js handle width
-    canvas.removeAttribute('height'); // reset any old values
     canvas.style.width = '100%';
-    canvas.style.height = (window.innerHeight * 0.5) + 'px'; // 50% viewport height
+    canvas.style.height = (window.innerHeight * 0.5) + 'px'; // 50% viewport
     canvas.dataset.fixedHeight = 'true';
-  } else if (!canvas.dataset.fixedHeight) {
-    canvas.style.width = '100%';
-    canvas.style.height = '400px'; // desktop default
-    canvas.dataset.fixedHeight = 'true';
+  } else if (window.innerWidth > 600) {
+    // ✅ Clear any fixed height for desktop
+    canvas.style.height = '';
+    delete canvas.dataset.fixedHeight;
   }
 
   const datasets = Object.keys(dataBySlug).map(slug => {
@@ -323,8 +320,8 @@ function drawChart(labels, dataBySlug, chartType) {
     type: chartType === 'stackedBar' ? 'bar' : chartType,
     data: { labels: displayLabels, datasets },
     options: {
-      responsive: false,               // ✅ DISABLE auto-resize so height doesn't loop
-      maintainAspectRatio: false,      // ✅ Let our CSS/JS height rule
+      responsive: window.innerWidth > 600, // ✅ enable responsive only on desktop
+      maintainAspectRatio: window.innerWidth > 600, // ✅ keep ratio on desktop
       plugins: { legend: { position: 'bottom' } },
       scales: (chartType === 'pie' || chartType === 'polarArea') ? {} : {
         x: chartType === 'stackedBar' ? { stacked: true } : {},
