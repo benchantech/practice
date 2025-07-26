@@ -1,33 +1,56 @@
 // levels.js
-// Handles calculating skill levels and rendering a table at the bottom of the screen
-// Level system: 1–100 per slug, based on total minutes cached (Level 100 = 10,000 hours = 600,000 minutes)
 
-// Calculate level and title name for a given number of minutes
+// Locked XP thresholds for Levels 1–100
+const levelThresholds = [
+  0,20,40,70,110,160,220,290,370,460,560,670,790,920,1060,1210,1370,1540,1720,1910,
+  2110,2320,2540,2770,3010,3260,3520,3790,4070,4360,4660,4970,5290,5620,5960,6310,6670,7040,7420,7810,
+  8210,8620,9040,9470,9910,10360,10820,11290,11770,12260,14280,16420,18680,21060,23560,26180,28920,31780,34760,37860,
+  41080,44420,47880,51460,55160,58980,62920,66980,71160,75460,82180,89080,96160,103420,110860,118480,126280,134260,142420,150760,
+  165180,179980,195160,210720,226660,242980,259680,276760,294220,312060,344660,378780,414420,451580,490260,530460,572180,615420,660180,600000
+];
+
+// Level names change every 3 levels; Level 100 unique
+const levelNames = [
+  '🌱 Acorn Tuner', '🌱 Acorn Tuner', '🌱 Acorn Tuner',
+  '🐿️ Nut Collector', '🐿️ Nut Collector', '🐿️ Nut Collector',
+  '🎶 Hollow Log Drummer', '🎶 Hollow Log Drummer', '🎶 Hollow Log Drummer',
+  '🍂 Leaf Flute Player', '🍂 Leaf Flute Player', '🍂 Leaf Flute Player',
+  '🌿 Sprout Songweaver', '🌿 Sprout Songweaver', '🌿 Sprout Songweaver',
+  '🦊 Woodland Harpist', '🦊 Woodland Harpist', '🦊 Woodland Harpist',
+  '🪵 Log String Plucker', '🪵 Log String Plucker', '🪵 Log String Plucker',
+  '🌲 Pine Melody Maker', '🌲 Pine Melody Maker', '🌲 Pine Melody Maker',
+  '🐇 Hare Tempo Keeper', '🐇 Hare Tempo Keeper', '🐇 Hare Tempo Keeper',
+  '🦉 Night Owl Chanter', '🦉 Night Owl Chanter', '🦉 Night Owl Chanter',
+  '🍄 Mushroom Chord Shaper', '🍄 Mushroom Chord Shaper', '🍄 Mushroom Chord Shaper',
+  '🕊️ Sky Note Messenger', '🕊️ Sky Note Messenger', '🕊️ Sky Note Messenger',
+  '🌳 Elder Tree Harmonist', '🌳 Elder Tree Harmonist', '🌳 Elder Tree Harmonist',
+  '🐺 Howling Harmony Maker', '🐺 Howling Harmony Maker', '🐺 Howling Harmony Maker',
+  '🎼 Symphony of the Grove', '🎼 Symphony of the Grove', '🎼 Symphony of the Grove',
+  '🦅 Wind Song Oracle', '🦅 Wind Song Oracle', '🦅 Wind Song Oracle',
+  '🪶 Feathered Lyric Sage', '🪶 Feathered Lyric Sage', '🪶 Feathered Lyric Sage',
+  '🌌 Starwood Virtuoso', '🌌 Starwood Virtuoso', '🌌 Starwood Virtuoso',
+  '🐉 Mythic Squirrel Maestro' // Level 100
+];
+
+// Get level data based on total minutes
 function getSkillLevelData(minutes) {
-  const totalNeeded = 600000; // 600k minutes = Level 100
-  const level = Math.min(100, Math.floor((minutes / totalNeeded) * 100) + 1);
+  const xp = minutes; // 1 XP per minute
+  let level = 1;
 
-  // Calculate how many minutes are needed to reach the next level
-  const nextLevelMinutes = (level / 100) * totalNeeded;
-  const remainingMinutes = Math.max(0, Math.ceil(nextLevelMinutes - minutes));
+  for (let i = 0; i < levelThresholds.length; i++) {
+    if (xp >= levelThresholds[i]) level = i + 1;
+    else break;
+  }
 
-  // Thematic names for ranges of levels
-  let name = '';
-  if (level <= 10) name = '🌱 Acorn Tuner';
-  else if (level <= 20) name = '🍂 Leaf Flute Player';
-  else if (level <= 30) name = '🌳 Oak Harpist';
-  else if (level <= 40) name = '🪵 Log String Plucker';
-  else if (level <= 50) name = '🌲 Pine Melody Maker';
-  else if (level <= 60) name = '🍄 Mushroom Chord Shaper';
-  else if (level <= 70) name = '🌿 Evergreen Balladeer';
-  else if (level <= 80) name = '🎼 Symphony of the Grove';
-  else if (level <= 90) name = '🪶 Feathered Lyric Sage';
-  else name = '🐉 Mythic Squirrel Maestro';
+  const nextLevelXP = levelThresholds[level] || 600000;
+  const remainingMinutes = Math.max(0, nextLevelXP - xp);
+
+  const name = levelNames[level - 1] || '🐉 Mythic Squirrel Maestro';
 
   return { level, name, remainingMinutes };
 }
 
-// Calculate total minutes, XP, and level for each slug based on cached data
+// Calculate total minutes, XP, and level for each slug
 function calculateSkillLevels() {
   const slugs = (localStorage.getItem('slugs') || '')
     .split(',')
@@ -39,7 +62,6 @@ function calculateSkillLevels() {
   slugs.forEach(slug => {
     let totalMinutes = 0;
 
-    // Sum all cached minutes for this slug across all dates
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       if (key.startsWith(`logcache_${slug}_`)) {
@@ -47,30 +69,23 @@ function calculateSkillLevels() {
       }
     }
 
-    // XP is minutes * XP/min (defaults to 1)
     const xpPerMin = parseInt(localStorage.getItem(`xp_${slug}`) || '1', 10);
     const totalXP = totalMinutes * xpPerMin;
-
-    // Get level data for this slug
     const levelData = getSkillLevelData(totalMinutes);
-
-    // Get emoji for slug
-    const emoji = localStorage.getItem(`emoji_${slug}`) || '';
 
     results[slug] = {
       minutes: totalMinutes,
       xp: totalXP,
       level: levelData.level,
       title: levelData.name,
-      remainingMinutes: levelData.remainingMinutes,
-      emoji
+      remainingMinutes: levelData.remainingMinutes
     };
   });
 
   return results;
 }
 
-// Render the skill levels in a table at the bottom of the screen
+// Render levels as table at bottom of page
 function renderSkillLevels() {
   const skills = calculateSkillLevels();
   const container = document.getElementById('skillLevels');
@@ -84,10 +99,9 @@ function renderSkillLevels() {
     return;
   }
 
-  // Create table element
   const table = document.createElement('table');
 
-  // Table header (first column blank for emojis)
+  // Blank header for emoji column
   const headerRow = document.createElement('tr');
   ['', 'Skill', 'Level', 'Title', 'Total Minutes', 'To Next Level'].forEach(text => {
     const th = document.createElement('th');
@@ -96,9 +110,9 @@ function renderSkillLevels() {
   });
   table.appendChild(headerRow);
 
-  // Add one row per slug
   slugs.forEach(slug => {
-    const { level, title, minutes, remainingMinutes, emoji } = skills[slug];
+    const { level, title, minutes, remainingMinutes } = skills[slug];
+    const emoji = localStorage.getItem(`emoji_${slug}`) || '';
 
     const row = document.createElement('tr');
     const cells = [
