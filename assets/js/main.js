@@ -335,11 +335,8 @@ document.getElementById('clearEndDate').addEventListener('click',()=>{
 document.getElementById('clearCache').addEventListener('click',()=>{
   const confirmed = confirm('This will clear all cached data and the Google Sheets URL. Continue?');
   if (confirmed) {
-    Object.keys(localStorage).forEach(k=>{
-      if (k.startsWith('logcache_') || k==='googleSheetUrl') localStorage.removeItem(k);
-    });
-    document.getElementById('googleSheetUrl').value='';
-    alert('Cache cleared — Practice Log Viewer by Ben Chan | benchantech.com');
+    localStorage.clear(); // wipe all keys
+    location.reload();    // reload the page
   }
 });
 
