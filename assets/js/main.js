@@ -276,10 +276,21 @@ function saveSlugOptions() {
 function drawChart(labels, dataBySlug, chartType) {
   if (!Array.isArray(labels) || labels.length === 0) return;
 
-  const ctx = document.getElementById('practiceChart').getContext('2d');
+  const canvas = document.getElementById('practiceChart');
+  const ctx = canvas.getContext('2d');
 
-  // ✅ Convert YYYY-MM-DD to MM-DD for display
+  // ✅ Convert YYYY-MM-DD → MM-DD for display
   const displayLabels = labels.map(d => d.includes('-') ? d.slice(5) : d);
+
+  // ✅ Only set height ONCE for mobile
+  if (!canvas.dataset.heightSet) {
+    if (window.innerWidth <= 600) {
+      canvas.style.height = (window.innerHeight * 0.5) + 'px'; // 50% of screen height
+    } else {
+      canvas.style.height = '400px'; // desktop default
+    }
+    canvas.dataset.heightSet = 'true'; // mark it so we don't keep resizing
+  }
 
   const datasets = Object.keys(dataBySlug).map(slug => {
     const color = localStorage.getItem(colorKey(slug)) || randomColor();
@@ -302,17 +313,7 @@ function drawChart(labels, dataBySlug, chartType) {
   });
 
   if (window.practiceChart) {
-    try {
-      window.practiceChart.destroy();
-    } catch (e) {}
-  }
-
-  // ✅ Dynamically adjust height for mobile
-  const chartCanvas = document.getElementById('practiceChart');
-  if (window.innerWidth <= 600) {
-    chartCanvas.height = window.innerHeight * 0.5; // 50% of screen height
-  } else {
-    chartCanvas.height = 400; // Default desktop height
+    try { window.practiceChart.destroy(); } catch (e) {}
   }
 
   window.practiceChart = new Chart(ctx, {
@@ -320,7 +321,7 @@ function drawChart(labels, dataBySlug, chartType) {
     data: { labels: displayLabels, datasets },
     options: {
       responsive: true,
-      maintainAspectRatio: false, // ✅ Prevent distortion, allows custom height
+      maintainAspectRatio: false, // ✅ allows custom height
       plugins: { legend: { position: 'bottom' } },
       scales: (chartType === 'pie' || chartType === 'polarArea') ? {} : {
         x: chartType === 'stackedBar' ? { stacked: true } : {},
