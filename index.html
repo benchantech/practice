@@ -14,7 +14,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="stylesheet" href="/assets/css/levels.css?v=1.00">
-  <link rel="stylesheet" href="/assets/css/main.css?v=1.01">
+  <link rel="stylesheet" href="/assets/css/main.css?v=1.02">
 </head>
 <body>
   <header>
@@ -68,14 +68,14 @@
 
   <div id="chartContainer">
     <div class="chart-header">
-      <label>Chart Start Date:
+      <label>From:
         <input type="date" id="chartStartDate">
       </label>
-      <label>Chart End Date:
+      <label>To:
         <input type="date" id="chartEndDate">
       </label>
 
-      <label>Group By:
+      <label>By:
         <select id="groupBy">
           <option value="Day">Day</option>
           <option value="Week">Week</option>
@@ -84,9 +84,8 @@
           <option value="Year">Year</option>
         </select>
       </label>
+      <button id="refreshVisibleDays">Refresh Visible Days</button>
     </div>
-
-    <button id="refreshVisibleDays">Refresh Visible Days</button>
     
     <canvas id="practiceChart"></canvas>
     <div id="xpBar"></div>
@@ -101,6 +100,6 @@
   </footer>
 
   <script src="/assets/js/levels.js?v=1.01"></script>
-  <script src="/assets/js/main.js?v=1.07"></script>
+  <script src="/assets/js/main.js?v=1.08"></script>
 </body>
 </html>
