@@ -279,17 +279,20 @@ function drawChart(labels, dataBySlug, chartType) {
   const canvas = document.getElementById('practiceChart');
   const ctx = canvas.getContext('2d');
 
-  // ✅ Convert YYYY-MM-DD → MM-DD for display
+  // ✅ Shorten YYYY-MM-DD → MM-DD
   const displayLabels = labels.map(d => d.includes('-') ? d.slice(5) : d);
 
-  // ✅ Only set height ONCE for mobile
-  if (!canvas.dataset.heightSet) {
-    if (window.innerWidth <= 600) {
-      canvas.style.height = (window.innerHeight * 0.5) + 'px'; // 50% of screen height
-    } else {
-      canvas.style.height = '400px'; // desktop default
-    }
-    canvas.dataset.heightSet = 'true'; // mark it so we don't keep resizing
+  // ✅ Apply fixed height on mobile only ONCE
+  if (window.innerWidth <= 600 && !canvas.dataset.fixedHeight) {
+    canvas.removeAttribute('width');  // let Chart.js handle width
+    canvas.removeAttribute('height'); // reset any old values
+    canvas.style.width = '100%';
+    canvas.style.height = (window.innerHeight * 0.5) + 'px'; // 50% viewport height
+    canvas.dataset.fixedHeight = 'true';
+  } else if (!canvas.dataset.fixedHeight) {
+    canvas.style.width = '100%';
+    canvas.style.height = '400px'; // desktop default
+    canvas.dataset.fixedHeight = 'true';
   }
 
   const datasets = Object.keys(dataBySlug).map(slug => {
@@ -320,8 +323,8 @@ function drawChart(labels, dataBySlug, chartType) {
     type: chartType === 'stackedBar' ? 'bar' : chartType,
     data: { labels: displayLabels, datasets },
     options: {
-      responsive: true,
-      maintainAspectRatio: false, // ✅ allows custom height
+      responsive: false,               // ✅ DISABLE auto-resize so height doesn't loop
+      maintainAspectRatio: false,      // ✅ Let our CSS/JS height rule
       plugins: { legend: { position: 'bottom' } },
       scales: (chartType === 'pie' || chartType === 'polarArea') ? {} : {
         x: chartType === 'stackedBar' ? { stacked: true } : {},
