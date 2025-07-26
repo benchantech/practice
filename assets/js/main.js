@@ -278,6 +278,9 @@ function drawChart(labels, dataBySlug, chartType) {
 
   const ctx = document.getElementById('practiceChart').getContext('2d');
 
+  // ✅ Convert YYYY-MM-DD to MM-DD for display
+  const displayLabels = labels.map(d => d.includes('-') ? d.slice(5) : d);
+
   const datasets = Object.keys(dataBySlug).map(slug => {
     const color = localStorage.getItem(colorKey(slug)) || randomColor();
     const values = labels.map(d => {
@@ -304,11 +307,20 @@ function drawChart(labels, dataBySlug, chartType) {
     } catch (e) {}
   }
 
+  // ✅ Dynamically adjust height for mobile
+  const chartCanvas = document.getElementById('practiceChart');
+  if (window.innerWidth <= 600) {
+    chartCanvas.height = window.innerHeight * 0.5; // 50% of screen height
+  } else {
+    chartCanvas.height = 400; // Default desktop height
+  }
+
   window.practiceChart = new Chart(ctx, {
     type: chartType === 'stackedBar' ? 'bar' : chartType,
-    data: { labels, datasets },
+    data: { labels: displayLabels, datasets },
     options: {
       responsive: true,
+      maintainAspectRatio: false, // ✅ Prevent distortion, allows custom height
       plugins: { legend: { position: 'bottom' } },
       scales: (chartType === 'pie' || chartType === 'polarArea') ? {} : {
         x: chartType === 'stackedBar' ? { stacked: true } : {},
