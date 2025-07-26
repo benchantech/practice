@@ -478,6 +478,9 @@ document.getElementById('updateSettings').addEventListener('click',()=>{
   saveSlugOptions();
   renderSlugOptions();
   refreshData();
+
+  // ✅ Trigger Show Settings button to hide panel
+  document.getElementById('toggleSettings').click();
 });
 
 document.getElementById('clearEndDate').addEventListener('click',()=>{
