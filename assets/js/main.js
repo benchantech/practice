@@ -317,14 +317,15 @@ document.getElementById('toggleSettings').addEventListener('click',()=>{
 document.getElementById('updateSettings').addEventListener('click',()=>{
   LS_KEYS.forEach(k=>{
     const val = document.getElementById(k).value.trim();
-    if (val || k==='endDate') localStorage.setItem(k,val);
+    if (val || k === 'endDate') {
+      localStorage.setItem(k, val);
+    } else {
+      localStorage.removeItem(k); // wipe empty values
+    }
   });
-  if (document.getElementById('googleSheetUrl').value.trim()) {
-    localStorage.removeItem('googleSheetUrl');
-  }
   saveSlugOptions();
   refreshData();
-}); 
+});
 
 document.getElementById('clearEndDate').addEventListener('click',()=>{
   document.getElementById('endDate').value='';
