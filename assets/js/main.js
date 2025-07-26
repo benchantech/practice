@@ -80,8 +80,12 @@ async function parseGoogleSheet(url) {
       dateMap.forEach(({ idx, date }) => {
         const rawVal = (rows[i][idx + 1] || '0').replace(/['"]+/g, '').trim();
         const mins = parseInt(rawVal, 10);
-        data[slug][date] = isNaN(mins) ? 0 : mins;
-        localStorage.setItem(cacheKey(slug, date), data[slug][date]);
+        const totalMins = isNaN(mins) ? 0 : mins;
+
+        data[slug][date] = totalMins;
+
+        // ✅ Always update cache when Google Sheets is used
+        localStorage.setItem(cacheKey(slug, date), totalMins);
       });
     }
 
@@ -243,7 +247,11 @@ function drawChart(labels, dataBySlug, chartType) {
 }
 
 function calculateXPandStreaks(dataBySlug) {
-  const slugs = Object.keys(dataBySlug);
+  const slugs = (localStorage.getItem('slugs') || '')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+
   if (slugs.length === 0) {
     document.getElementById('xpBar').innerHTML = '';
     document.getElementById('xpBarLabels').innerHTML = '';
@@ -254,14 +262,24 @@ function calculateXPandStreaks(dataBySlug) {
   const allTimeXP = {};
   let totalXP = 0;
 
+  // ✅ Sum ALL cached minutes for each slug (not just visible dates)
   slugs.forEach(slug => {
     const xpPerMin = parseInt(localStorage.getItem(xpKey(slug)) || '1', 10);
-    const totalMinutes = Object.values(dataBySlug[slug]).reduce((a,b)=>a+b, 0);
+    let totalMinutes = 0;
+
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key.startsWith(`logcache_${slug}_`)) {
+        totalMinutes += parseInt(localStorage.getItem(key), 10) || 0;
+      }
+    }
+
     const xp = totalMinutes * xpPerMin;
     allTimeXP[slug] = xp;
     totalXP += xp;
   });
 
+  // ✅ Build XP bar
   const xpBar = document.getElementById('xpBar');
   xpBar.innerHTML = '';
 
@@ -284,8 +302,16 @@ function calculateXPandStreaks(dataBySlug) {
     xpBarLabels.appendChild(label);
   });
 
+  // ✅ Build streaks based on ALL cached dates
   const allDates = new Set();
-  slugs.forEach(slug => Object.keys(dataBySlug[slug]).forEach(date => allDates.add(date)));
+
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    const match = key.match(/^logcache_(.+)_(\d{4}-\d{2}-\d{2})$/);
+    if (match) {
+      allDates.add(match[2]);
+    }
+  }
 
   const sortedDates = Array.from(allDates).sort();
   const today = new Date().toISOString().split('T')[0];
@@ -295,7 +321,12 @@ function calculateXPandStreaks(dataBySlug) {
   let streak = 0;
 
   sortedDates.forEach(date => {
-    const totalMins = slugs.reduce((sum, slug) => sum + (dataBySlug[slug][date] || 0), 0);
+    let totalMins = 0;
+    slugs.forEach(slug => {
+      const cachedVal = localStorage.getItem(`logcache_${slug}_${date}`);
+      totalMins += cachedVal ? parseInt(cachedVal, 10) || 0 : 0;
+    });
+
     if (totalMins > 0) {
       streak++;
       if (streak > maxStreak) maxStreak = streak;
