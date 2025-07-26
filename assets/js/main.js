@@ -386,7 +386,8 @@ function calculateXPandStreaks(dataBySlug) {
 
     const label = document.createElement('div');
     label.style.width = width + '%';
-    label.textContent = allTimeXP[slug] + ' XP';
+    label.style.fontSize = '8px';
+    label.textContent = allTimeXP[slug];
     xpBarLabels.appendChild(label);
   });
 
