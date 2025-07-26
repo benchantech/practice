@@ -37,10 +37,11 @@
     <label>Practice Log Slugs (comma-separated):
       <input type="text" id="slugs">
     </label>
-    <label>Start Date:
+
+    <label>Start Date (Git Repo):
       <input type="date" id="startDate">
     </label>
-    <label>End Date (optional):
+    <label>End Date (Git Repo):
       <input type="date" id="endDate">
     </label>
     <button class="clear-btn" id="clearEndDate">Clear End Date</button>
@@ -67,13 +68,30 @@
 
   <div id="chartContainer">
     <div class="chart-header">
-      <button id="refreshVisibleDays">Refresh Visible Days</button>
+      <label>Chart Start Date:
+        <input type="date" id="chartStartDate">
+      </label>
+      <label>Chart End Date:
+        <input type="date" id="chartEndDate">
+      </label>
+
+      <label>Group By:
+        <select id="groupBy">
+          <option value="Day">Day</option>
+          <option value="Week">Week</option>
+          <option value="Month">Month</option>
+          <option value="Quarter">Quarter</option>
+          <option value="Year">Year</option>
+        </select>
+      </label>
     </div>
+
+    <button id="refreshVisibleDays">Refresh Visible Days</button>
+    
     <canvas id="practiceChart"></canvas>
     <div id="xpBar"></div>
     <div id="xpBarLabels"></div>
     <div id="streakInfo"></div>
-    <!-- Container for skill levels table -->
     <div id="skillLevels"></div>
   </div>
 
