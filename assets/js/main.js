@@ -319,6 +319,9 @@ document.getElementById('updateSettings').addEventListener('click',()=>{
     const val = document.getElementById(k).value.trim();
     if (val || k==='endDate') localStorage.setItem(k,val);
   });
+  if (document.getElementById('googleSheetUrl').value.trim()) {
+    localStorage.removeItem('googleSheetUrl');
+  }
   saveSlugOptions();
   refreshData();
 }); 
