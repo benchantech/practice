@@ -11,9 +11,16 @@ function randomColor() {
 }
 
 /* Parse Google Sheets CSV file with correct ordering */
+function toCsvLink(originalUrl) {
+  const match = originalUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if (!match) return null; // invalid URL
+  const sheetId = match[1];
+  return `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`;
+}
+
 async function parseGoogleSheet(url) {
   try {
-    const res = await fetch(url);
+    const res = await fetch(toCsvLink(url));
     if (!res.ok) return null;
 
     const text = await res.text();
