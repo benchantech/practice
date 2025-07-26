@@ -141,7 +141,7 @@ function renderSkillLevels() {
 
   // Table header (blank first column for emoji)
   const headerRow = document.createElement('tr');
-  ['', 'Skill', 'Level', 'Title', 'Total Minutes', 'To Next Level'].forEach(text => {
+  ['Slug', 'Level', 'Title', 'XP (Left)'].forEach(text => {
     const th = document.createElement('th');
     th.textContent = text;
     headerRow.appendChild(th);
@@ -155,12 +155,10 @@ function renderSkillLevels() {
 
     const row = document.createElement('tr');
     const cells = [
-      emoji,
-      slug,
-      `Level ${level}`,
+      emoji + slug,
+      level,
       title,
-      minutes.toLocaleString(),
-      `${remainingMinutes.toLocaleString()} min`
+      `${minutes.toLocaleString()} (${remainingMinutes.toLocaleString()})`
     ];
 
     cells.forEach(val => {
