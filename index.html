@@ -22,7 +22,7 @@
     For custom builds or coaching: https://benchantech.com
   -->
 
-  <!-- Google tag (gtag.js) -->
+  <!-- Google Analytics tracking script -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-25PDJ8VRNT"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
@@ -31,7 +31,10 @@
     gtag('config', 'G-25PDJ8VRNT');
   </script>
 
+  <!-- Chart.js library for rendering graphs -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Basic page styling -->
   <style>
     body { font-family: system-ui, sans-serif; background: #fafafa; color: #222; margin: 0; padding: 1rem; }
     header { text-align: center; padding: 1rem 0; border-bottom: 1px solid #ddd; }
@@ -67,9 +70,12 @@
     <!-- Transparent ecosystem built by Ben Chan. Learn to build yours at benchantech.com -->
   </header>
 
+  <!-- Button to toggle settings visibility -->
   <button id="toggleSettings">Show Settings</button>
 
+  <!-- Settings panel (hidden by default) -->
   <div id="settings" style="display:none;">
+    <!-- Input fields for GitHub repo and log configuration -->
     <label>GitHub Username:
       <input type="text" id="username">
     </label>
@@ -85,9 +91,11 @@
     <label>End Date (optional):
       <input type="date" id="endDate">
     </label>
+    <!-- Buttons for clearing date and cache -->
     <button class="clear-btn" id="clearEndDate">Clear End Date</button>
     <button class="clear-btn" id="clearCache">Clear Cache</button>
 
+    <!-- Chart type selector -->
     <label>Chart Type:
       <select id="chartType">
         <option value="line">Line</option>
@@ -99,16 +107,20 @@
       </select>
     </label>
 
+    <!-- Slug-specific customization options get injected here -->
     <div id="slugSettings"></div>
 
+    <!-- Buttons to apply or share settings -->
     <div class="settings-actions">
       <button id="updateSettings">Update</button>
       <button id="shareSettings">Share</button>
     </div>
   </div>
 
+  <!-- Chart container with XP and streak info -->
   <div id="chartContainer">
     <div class="chart-header">
+      <!-- Button to force refresh of currently visible date range -->
       <button id="refreshVisibleDays">Refresh Visible Days</button>
     </div>
     <canvas id="practiceChart"></canvas>
@@ -117,6 +129,7 @@
     <div id="streakInfo"></div>
   </div>
 
+  <!-- Footer attribution -->
   <footer>
     <p>Free tool by <strong>Ben Chan</strong> — <a href="https://benchantech.com" target="_blank">benchantech.com</a></p>
     <p style="font-size:0.7rem;">Licensed CC BY 4.0 — Attribution required if redistributed.</p>
@@ -125,12 +138,14 @@
   <script>
     console.log("%cPractice Log Viewer built by Ben Chan | https://benchantech.com", "color: #0077cc; font-weight: bold;");
 
+    /* ====== LocalStorage key helpers ====== */
     const LS_KEYS = ['username', 'repo', 'slugs', 'startDate', 'endDate', 'chartType'];
     const colorKey = slug => `color_${slug}`;
     const emojiKey = slug => `emoji_${slug}`;
     const xpKey = slug => `xp_${slug}`;
     const cacheKey = (slug,date) => `logcache_${slug}_${date}`;
 
+    /* ====== Load settings from localStorage into UI ====== */
     function loadSettings() {
       let hasData = true;
       LS_KEYS.forEach(k => {
@@ -142,6 +157,7 @@
       return hasData;
     }
 
+    /* ====== Save current UI settings to localStorage ====== */
     function saveSettings() {
       LS_KEYS.forEach(k => {
         const val = document.getElementById(k).value.trim();
@@ -150,6 +166,7 @@
       saveSlugOptions();
     }
 
+    /* ====== Generate per-slug customization inputs dynamically ====== */
     function renderSlugOptions() {
       const slugContainer = document.getElementById('slugSettings');
       slugContainer.innerHTML = '';
@@ -171,6 +188,7 @@
       });
     }
 
+    /* ====== Save per-slug customization values to localStorage ====== */
     function saveSlugOptions() {
       document.querySelectorAll('input[data-slug]').forEach(inp => {
         localStorage.setItem(colorKey(inp.dataset.slug), inp.value);
@@ -186,6 +204,7 @@
       });
     }
 
+    /* ====== Toggle visibility of settings panel ====== */
     function toggleSettings(show) {
       const settings = document.getElementById('settings');
       const btn = document.getElementById('toggleSettings');
@@ -198,6 +217,7 @@
       }
     }
 
+    /* ====== Event listeners for settings buttons ====== */
     document.getElementById('toggleSettings').addEventListener('click', () => {
       toggleSettings(document.getElementById('settings').style.display === 'none');
     });
@@ -227,6 +247,7 @@
       refreshVisibleDays();
     });
 
+    /* ====== Fetch a single day's practice log JSON from GitHub Pages ====== */
     async function fetchLog(url) {
       try {
         const res = await fetch(url);
@@ -237,6 +258,7 @@
       }
     }
 
+    /* ====== Generate array of date strings between two dates ====== */
     function getDateRange(start, end) {
       const dates = [];
       let cur = new Date(start);
@@ -248,7 +270,7 @@
       return dates;
     }
 
-    // Get all dates from first practice log to today for XP calculation
+    /* ====== Get all-time date range for XP/streak calculation ====== */
     function getAllTimeRange() {
       const username = localStorage.getItem('username');
       const repo = localStorage.getItem('repo');
@@ -256,7 +278,7 @@
       
       if (!username || !repo || !slugs.length) return [];
       
-      // Find earliest date in cache
+      // Find earliest cached date
       let earliestDate = null;
       Object.keys(localStorage).forEach(key => {
         if (key.startsWith('logcache_')) {
@@ -271,7 +293,7 @@
       });
       
       if (!earliestDate) {
-        // Fallback to start date if no cache
+        // Use start date if no cached data exists
         earliestDate = localStorage.getItem('startDate');
       }
       
@@ -280,6 +302,7 @@
       return getDateRange(earliestDate, null); // null = today
     }
 
+    /* ====== Force-refresh data for currently visible date range ====== */
     async function refreshVisibleDays() {
       const username = localStorage.getItem('username');
       const repo = localStorage.getItem('repo');
@@ -295,18 +318,18 @@
 
       const dateRange = getDateRange(startDate, endDate);
       
-      // Clear cache for visible range and refetch
+      // Clear cached values for the selected date range
       for (const slug of slugs) {
         for (const date of dateRange) {
           const key = cacheKey(slug, date);
-          localStorage.removeItem(key); // Remove from cache to force refetch
+          localStorage.removeItem(key);
         }
       }
       
-      // Refresh the data
       refreshData();
     }
 
+    /* ====== Fetch and aggregate all data for chart rendering ====== */
     async function refreshData() {
       const username = localStorage.getItem('username');
       const repo = localStorage.getItem('repo');
@@ -348,12 +371,14 @@
       calculateXPandStreaks(dataBySlug);
     }
 
+    /* ====== Render chart based on selected chart type ====== */
     function drawChart(labels, dataBySlug, chartType) {
       const ctx = document.getElementById('practiceChart').getContext('2d');
       let datasets;
       let type = chartType;
 
       if (chartType === 'pie') {
+        // Aggregate totals per slug for pie chart
         const slugs = Object.keys(dataBySlug);
         const totals = slugs.map(slug => Object.values(dataBySlug[slug]).reduce((a, b) => a + b, 0));
         datasets = [{
@@ -401,12 +426,12 @@
       });
     }
 
+    /* ====== Calculate total XP and practice streaks ====== */
     async function calculateXPandStreaks(visibleDataBySlug) {
       const username = localStorage.getItem('username');
       const repo = localStorage.getItem('repo');
       const slugs = (localStorage.getItem('slugs') || '').split(',').map(s => s.trim()).filter(Boolean);
       
-      // Calculate all-time XP from all cached data
       const allTimeXP = {};
       let totalXP = 0;
 
@@ -414,7 +439,7 @@
         let slugTotal = 0;
         const xpPerMin = parseInt(localStorage.getItem(xpKey(slug)) || '1', 10);
         
-        // Sum all cached data for this slug
+        // Sum all cached minutes for this slug
         Object.keys(localStorage).forEach(key => {
           if (key.startsWith(`logcache_${slug}_`)) {
             const minutes = parseInt(localStorage.getItem(key) || '0', 10);
@@ -427,7 +452,7 @@
         totalXP += xp;
       }
 
-      // Update XP bar with all-time data
+      // Render XP progress bar
       const xpBar = document.getElementById('xpBar');
       xpBar.innerHTML = '';
       Object.keys(allTimeXP).forEach(slug => {
@@ -452,7 +477,7 @@
         xpBarLabels.appendChild(labelDiv);
       });
 
-      // Calculate streaks from visible data
+      // Calculate streaks from visible date range
       const visibleDates = Object.keys(visibleDataBySlug[slugs[0]] || {}).sort();
       const today = new Date().toISOString().split('T')[0];
       let currentStreak = 0, maxStreak = 0, minStreak = Infinity, streak = 0;
@@ -474,6 +499,7 @@
         `Total XP: ${totalXP} | Current Streak: ${currentStreak} days | Max Streak: ${maxStreak} days | Min Streak: ${minStreak} days`;
     }
 
+    /* ====== Encode settings into a shareable URL ====== */
     function encodeSettings() {
       const data = {};
       LS_KEYS.forEach(k => data[k] = localStorage.getItem(k) || '');
@@ -489,12 +515,14 @@
       return btoa(encodeURIComponent(JSON.stringify(data)));
     }
 
+    /* ====== Copy shareable link to clipboard ====== */
     document.getElementById('shareSettings').addEventListener('click', () => {
       const encoded = encodeSettings();
       const url = `${location.origin}${location.pathname}?s=${encoded}`;
       navigator.clipboard.writeText(url).then(() => alert('Shareable link copied!'));
     });
 
+    /* ====== Load settings from encoded URL query if present ====== */
     function loadFromQuery() {
       const params = new URLSearchParams(location.search);
       if (params.has('s')) {
@@ -515,6 +543,7 @@
       return false;
     }
 
+    /* ====== Initialization ====== */
     const fromQuery = loadFromQuery();
     const hasSettings = loadSettings();
     toggleSettings(!hasSettings);
