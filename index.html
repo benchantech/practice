@@ -5,77 +5,28 @@
   <title>Practice Log Viewer — Ben Chan | benchantech.com</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <!-- SEO + attribution -->
-  <meta name="description" content="Free, transparent practice tracker built by Ben Chan. Learn how to modify and build your own version with coaching at benchantech.com.">
-  <meta name="author" content="Ben Chan">
+  <meta name="description" content="Free practice tracker by Ben Chan Tech LLC. Learn more at benchantech.com.">
+  <meta name="author" content="Ben Chan Tech LLC">
   <meta property="og:title" content="Practice Log Viewer — Ben Chan">
-  <meta property="og:description" content="A free, fully transparent practice tracker with XP, streaks, and customization. Built to teach.">
+  <meta property="og:description" content="Free practice tracker with XP, streaks, and customization.">
   <meta property="og:url" content="https://benchantech.com/practice-tracker">
   <meta property="og:type" content="website">
 
-  <!-- Attribution/license -->
-  <!--
-    Practice Log Viewer v1.0
-    Built by Ben Chan | benchantech.com
-    Licensed under Creative Commons Attribution 4.0 (CC BY 4.0)
-    You are free to use, modify, and share this work with attribution.
-    For custom builds or coaching: https://benchantech.com
-  -->
-
-  <!-- Google Analytics tracking script -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-25PDJ8VRNT"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-25PDJ8VRNT');
-  </script>
-
-  <!-- Chart.js library for rendering graphs -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-  <!-- Basic page styling -->
-  <style>
-    body { font-family: system-ui, sans-serif; background: #fafafa; color: #222; margin: 0; padding: 1rem; }
-    header { text-align: center; padding: 1rem 0; border-bottom: 1px solid #ddd; }
-    h1 { margin: 0; font-size: 1.6rem; }
-    #settings { max-width: 650px; margin: 1rem auto; background: #fff; padding: 1rem; border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.05);}
-    label { display: block; margin-top: 0.5rem; font-size: 0.9rem; }
-    input, select { width: 100%; padding: 0.4rem; margin-top: 0.2rem; border: 1px solid #ccc; border-radius: 4px;}
-    .slug-options { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.2rem; }
-    .slug-options input[type="color"] { width: 40px; padding: 0; }
-    .slug-options input[data-slug-xp] { width: 60px; }
-    button { margin-top: 1rem; padding: 0.5rem 1rem; border: none; background: #0077cc; color: white;
-      border-radius: 4px; cursor: pointer; font-size: 0.9rem; }
-    button:hover { background: #005fa3; }
-    #chartContainer { max-width: 800px; margin: 2rem auto; background: #fff; padding: 1rem; border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.05);}
-    #toggleSettings { display: block; margin: 1rem auto; background: #444; }
-    .clear-btn { margin-top: 0.3rem; background: #999; }
-    .settings-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; }
-    #shareSettings { background:#28a745; }
-    #refreshVisibleDays { background: #17a2b8; margin-bottom: 1rem; float: right; }
-    #xpBar { height: 24px; display: flex; margin-top: 1rem; border-radius: 6px; overflow: hidden; position: relative; }
-    #xpBarLabels { display: flex; height: 24px; margin-top: 2px; font-size: 0.8rem; }
-    #xpBarLabels div { text-align: center; color: #000; font-weight: bold; display: flex; align-items: center; justify-content: center; }
-    #streakInfo { margin-top: 1rem; font-size: 0.9rem; text-align: center; }
-    footer { text-align: center; margin-top: 2rem; font-size: 0.8rem; color: #666; }
-    .chart-header { overflow: hidden; margin-bottom: 1rem; }
-  </style>
+  <link rel="stylesheet" href="/assets/css/main.css">
 </head>
 <body>
   <header>
     <h1>Practice Log Viewer</h1>
-    <!-- Transparent ecosystem built by Ben Chan. Learn to build yours at benchantech.com -->
   </header>
 
-  <!-- Button to toggle settings visibility -->
   <button id="toggleSettings">Show Settings</button>
 
-  <!-- Settings panel (hidden by default) -->
   <div id="settings" style="display:none;">
-    <!-- Input fields for GitHub repo and log configuration -->
+    <label>Paste Google Sheets URL (CSV export):
+      <input type="text" id="googleSheetUrl" placeholder="https://docs.google.com/spreadsheets/.../gviz/tq?tqx=out:csv">
+    </label>
+
     <label>GitHub Username:
       <input type="text" id="username">
     </label>
@@ -91,11 +42,9 @@
     <label>End Date (optional):
       <input type="date" id="endDate">
     </label>
-    <!-- Buttons for clearing date and cache -->
     <button class="clear-btn" id="clearEndDate">Clear End Date</button>
     <button class="clear-btn" id="clearCache">Clear Cache</button>
 
-    <!-- Chart type selector -->
     <label>Chart Type:
       <select id="chartType">
         <option value="line">Line</option>
@@ -107,20 +56,16 @@
       </select>
     </label>
 
-    <!-- Slug-specific customization options get injected here -->
     <div id="slugSettings"></div>
 
-    <!-- Buttons to apply or share settings -->
     <div class="settings-actions">
       <button id="updateSettings">Update</button>
       <button id="shareSettings">Share</button>
     </div>
   </div>
 
-  <!-- Chart container with XP and streak info -->
   <div id="chartContainer">
     <div class="chart-header">
-      <!-- Button to force refresh of currently visible date range -->
       <button id="refreshVisibleDays">Refresh Visible Days</button>
     </div>
     <canvas id="practiceChart"></canvas>
@@ -129,425 +74,11 @@
     <div id="streakInfo"></div>
   </div>
 
-  <!-- Footer attribution -->
   <footer>
-    <p>Free tool by <strong>Ben Chan</strong> — <a href="https://benchantech.com" target="_blank">benchantech.com</a></p>
-    <p style="font-size:0.7rem;">Licensed CC BY 4.0 — Attribution required if redistributed.</p>
+    <p>Free tool by <strong>Ben Chan Tech LLC</strong> — <a href="https://benchantech.com" target="_blank">benchantech.com</a></p>
+    <p style="font-size:0.7rem;">Licensed CC BY 4.0 — Attribution required.</p>
   </footer>
 
-  <script>
-    console.log("%cPractice Log Viewer built by Ben Chan | https://benchantech.com", "color: #0077cc; font-weight: bold;");
-
-    /* ====== LocalStorage key helpers ====== */
-    const LS_KEYS = ['username', 'repo', 'slugs', 'startDate', 'endDate', 'chartType'];
-    const colorKey = slug => `color_${slug}`;
-    const emojiKey = slug => `emoji_${slug}`;
-    const xpKey = slug => `xp_${slug}`;
-    const cacheKey = (slug,date) => `logcache_${slug}_${date}`;
-
-    /* ====== Load settings from localStorage into UI ====== */
-    function loadSettings() {
-      let hasData = true;
-      LS_KEYS.forEach(k => {
-        const val = localStorage.getItem(k);
-        if (val) document.getElementById(k).value = val;
-        else if (k !== 'endDate') hasData = false;
-      });
-      renderSlugOptions();
-      return hasData;
-    }
-
-    /* ====== Save current UI settings to localStorage ====== */
-    function saveSettings() {
-      LS_KEYS.forEach(k => {
-        const val = document.getElementById(k).value.trim();
-        if (val || k === 'endDate') localStorage.setItem(k, val);
-      });
-      saveSlugOptions();
-    }
-
-    /* ====== Generate per-slug customization inputs dynamically ====== */
-    function renderSlugOptions() {
-      const slugContainer = document.getElementById('slugSettings');
-      slugContainer.innerHTML = '';
-      const slugs = (document.getElementById('slugs').value || '').split(',').map(s => s.trim()).filter(Boolean);
-      slugs.forEach(slug => {
-        const colorVal = localStorage.getItem(colorKey(slug)) || '#0077cc';
-        const emojiVal = localStorage.getItem(emojiKey(slug)) || '';
-        const xpVal = localStorage.getItem(xpKey(slug)) || '1';
-        const div = document.createElement('div');
-        div.className = 'slug-options';
-        div.innerHTML = `
-          <span>${slug}</span>
-          <input type="color" data-slug="${slug}" value="${colorVal}">
-          <input type="text" placeholder="Color" data-slug-color="${slug}" value="${colorVal}">
-          <input type="text" placeholder="Emoji" maxlength="2" data-slug-emoji="${slug}" value="${emojiVal}">
-          <input type="number" placeholder="XP/min" min="0" step="1" data-slug-xp="${slug}" value="${xpVal}">
-        `;
-        slugContainer.appendChild(div);
-      });
-    }
-
-    /* ====== Save per-slug customization values to localStorage ====== */
-    function saveSlugOptions() {
-      document.querySelectorAll('input[data-slug]').forEach(inp => {
-        localStorage.setItem(colorKey(inp.dataset.slug), inp.value);
-      });
-      document.querySelectorAll('input[data-slug-color]').forEach(inp => {
-        if (inp.value.trim()) localStorage.setItem(colorKey(inp.dataset.slugColor), inp.value.trim());
-      });
-      document.querySelectorAll('input[data-slug-emoji]').forEach(inp => {
-        localStorage.setItem(emojiKey(inp.dataset.slugEmoji), inp.value.trim());
-      });
-      document.querySelectorAll('input[data-slug-xp]').forEach(inp => {
-        localStorage.setItem(xpKey(inp.dataset.slugXp), inp.value.trim() || '1');
-      });
-    }
-
-    /* ====== Toggle visibility of settings panel ====== */
-    function toggleSettings(show) {
-      const settings = document.getElementById('settings');
-      const btn = document.getElementById('toggleSettings');
-      if (show) {
-        settings.style.display = 'block';
-        btn.textContent = 'Hide Settings';
-      } else {
-        settings.style.display = 'none';
-        btn.textContent = 'Show Settings';
-      }
-    }
-
-    /* ====== Event listeners for settings buttons ====== */
-    document.getElementById('toggleSettings').addEventListener('click', () => {
-      toggleSettings(document.getElementById('settings').style.display === 'none');
-    });
-
-    document.getElementById('updateSettings').addEventListener('click', () => {
-      saveSettings();
-      toggleSettings(false);
-      refreshData();
-    });
-
-    document.getElementById('clearEndDate').addEventListener('click', () => {
-      document.getElementById('endDate').value = '';
-      localStorage.removeItem('endDate');
-    });
-
-    document.getElementById('clearCache').addEventListener('click', () => {
-      const confirmed = confirm('This will reset all practice logs and you will have to set the Start Date back to the beginning to recover lost data. Proceed?');
-      if (confirmed) {
-        Object.keys(localStorage).forEach(k => {
-          if (k.startsWith('logcache_')) localStorage.removeItem(k);
-        });
-        alert('Cache cleared!');
-      }
-    });
-
-    document.getElementById('refreshVisibleDays').addEventListener('click', () => {
-      refreshVisibleDays();
-    });
-
-    /* ====== Fetch a single day's practice log JSON from GitHub Pages ====== */
-    async function fetchLog(url) {
-      try {
-        const res = await fetch(url);
-        if (!res.ok) return [];
-        return await res.json();
-      } catch {
-        return [];
-      }
-    }
-
-    /* ====== Generate array of date strings between two dates ====== */
-    function getDateRange(start, end) {
-      const dates = [];
-      let cur = new Date(start);
-      const endDate = end ? new Date(end) : new Date();
-      while (cur <= endDate) {
-        dates.push(cur.toISOString().split('T')[0]);
-        cur.setDate(cur.getDate() + 1);
-      }
-      return dates;
-    }
-
-    /* ====== Get all-time date range for XP/streak calculation ====== */
-    function getAllTimeRange() {
-      const username = localStorage.getItem('username');
-      const repo = localStorage.getItem('repo');
-      const slugs = (localStorage.getItem('slugs') || '').split(',').map(s => s.trim()).filter(Boolean);
-      
-      if (!username || !repo || !slugs.length) return [];
-      
-      // Find earliest cached date
-      let earliestDate = null;
-      Object.keys(localStorage).forEach(key => {
-        if (key.startsWith('logcache_')) {
-          const parts = key.split('_');
-          if (parts.length >= 3) {
-            const date = parts.slice(2).join('_');
-            if (!earliestDate || date < earliestDate) {
-              earliestDate = date;
-            }
-          }
-        }
-      });
-      
-      if (!earliestDate) {
-        // Use start date if no cached data exists
-        earliestDate = localStorage.getItem('startDate');
-      }
-      
-      if (!earliestDate) return [];
-      
-      return getDateRange(earliestDate, null); // null = today
-    }
-
-    /* ====== Force-refresh data for currently visible date range ====== */
-    async function refreshVisibleDays() {
-      const username = localStorage.getItem('username');
-      const repo = localStorage.getItem('repo');
-      const slugs = (localStorage.getItem('slugs') || '').split(',').map(s => s.trim()).filter(Boolean);
-      const startDate = localStorage.getItem('startDate');
-      const endDate = localStorage.getItem('endDate');
-
-      if (!username || !repo || !slugs.length || !startDate) {
-        alert('Please fill in all required settings.');
-        toggleSettings(true);
-        return;
-      }
-
-      const dateRange = getDateRange(startDate, endDate);
-      
-      // Clear cached values for the selected date range
-      for (const slug of slugs) {
-        for (const date of dateRange) {
-          const key = cacheKey(slug, date);
-          localStorage.removeItem(key);
-        }
-      }
-      
-      refreshData();
-    }
-
-    /* ====== Fetch and aggregate all data for chart rendering ====== */
-    async function refreshData() {
-      const username = localStorage.getItem('username');
-      const repo = localStorage.getItem('repo');
-      const slugs = (localStorage.getItem('slugs') || '').split(',').map(s => s.trim()).filter(Boolean);
-      const startDate = localStorage.getItem('startDate');
-      const endDate = localStorage.getItem('endDate');
-      const chartType = localStorage.getItem('chartType') || 'line';
-
-      if (!username || !repo || !slugs.length || !startDate) {
-        alert('Please fill in all required settings.');
-        toggleSettings(true);
-        return;
-      }
-
-      const dateRange = getDateRange(startDate, endDate);
-      const dataBySlug = {};
-
-      for (const slug of slugs) {
-        dataBySlug[slug] = {};
-        for (const date of dateRange) {
-          const key = cacheKey(slug, date);
-          let total;
-          const cached = localStorage.getItem(key);
-          if (cached !== null) {
-            total = parseInt(cached, 10);
-          } else {
-            const [y, m, d] = date.split('-');
-            const url = `https://${username}.github.io/${repo}/${slug}/${y}/${m}/${d}.json`;
-            let logs = await fetchLog(url);
-            if (!Array.isArray(logs)) logs = [];
-            total = logs.reduce((sum, entry) => sum + parseInt(entry.minutes || 0, 10), 0);
-            localStorage.setItem(key, total);
-          }
-          dataBySlug[slug][date] = isNaN(total) ? 0 : total;
-        }
-      }
-
-      drawChart(dateRange, dataBySlug, chartType);
-      calculateXPandStreaks(dataBySlug);
-    }
-
-    /* ====== Render chart based on selected chart type ====== */
-    function drawChart(labels, dataBySlug, chartType) {
-      const ctx = document.getElementById('practiceChart').getContext('2d');
-      let datasets;
-      let type = chartType;
-
-      if (chartType === 'pie') {
-        // Aggregate totals per slug for pie chart
-        const slugs = Object.keys(dataBySlug);
-        const totals = slugs.map(slug => Object.values(dataBySlug[slug]).reduce((a, b) => a + b, 0));
-        datasets = [{
-          data: totals,
-          backgroundColor: slugs.map(slug => localStorage.getItem(colorKey(slug)) || '#' + Math.floor(Math.random() * 16777215).toString(16)),
-          label: 'Total Minutes'
-        }];
-        labels = slugs.map(slug => {
-          const emoji = localStorage.getItem(emojiKey(slug)) || '';
-          return emoji ? `${emoji} ${slug}` : slug;
-        });
-        type = 'pie';
-      } else {
-        datasets = Object.keys(dataBySlug).map(slug => {
-          const color = localStorage.getItem(colorKey(slug)) || '#' + Math.floor(Math.random() * 16777215).toString(16);
-          const emoji = localStorage.getItem(emojiKey(slug)) || '';
-          return {
-            label: emoji ? `${emoji} ${slug}` : slug,
-            data: labels.map(date => dataBySlug[slug][date] || 0),
-            fill: false,
-            borderColor: color,
-            backgroundColor: color,
-            tension: 0.2
-          };
-        });
-        if (chartType === 'stackedBar') type = 'bar';
-      }
-
-      if (window.practiceChart && typeof window.practiceChart.destroy === 'function') {
-        window.practiceChart.destroy();
-      }
-
-      window.practiceChart = new Chart(ctx, {
-        type: type,
-        data: { labels, datasets },
-        options: {
-          responsive: true,
-          plugins: { legend: { position: 'bottom' } },
-          scales: chartType === 'pie' ? {} : {
-            x: chartType === 'stackedBar' ? { stacked: true } : {},
-            y: chartType === 'stackedBar' ? { stacked: true, beginAtZero: true, title: { display: true, text: 'Minutes Practiced' } } :
-                { beginAtZero: true, title: { display: true, text: 'Minutes Practiced' } }
-          }
-        }
-      });
-    }
-
-    /* ====== Calculate total XP and practice streaks ====== */
-    async function calculateXPandStreaks(visibleDataBySlug) {
-      const username = localStorage.getItem('username');
-      const repo = localStorage.getItem('repo');
-      const slugs = (localStorage.getItem('slugs') || '').split(',').map(s => s.trim()).filter(Boolean);
-      
-      const allTimeXP = {};
-      let totalXP = 0;
-
-      for (const slug of slugs) {
-        let slugTotal = 0;
-        const xpPerMin = parseInt(localStorage.getItem(xpKey(slug)) || '1', 10);
-        
-        // Sum all cached minutes for this slug
-        Object.keys(localStorage).forEach(key => {
-          if (key.startsWith(`logcache_${slug}_`)) {
-            const minutes = parseInt(localStorage.getItem(key) || '0', 10);
-            slugTotal += minutes;
-          }
-        });
-        
-        const xp = slugTotal * xpPerMin;
-        allTimeXP[slug] = xp;
-        totalXP += xp;
-      }
-
-      // Render XP progress bar
-      const xpBar = document.getElementById('xpBar');
-      xpBar.innerHTML = '';
-      Object.keys(allTimeXP).forEach(slug => {
-        const color = localStorage.getItem(colorKey(slug)) || '#0077cc';
-        const emoji = localStorage.getItem(emojiKey(slug)) || '';
-        const width = totalXP > 0 ? (allTimeXP[slug] / totalXP * 100).toFixed(2) : 0;
-        const seg = document.createElement('div');
-        seg.className = 'xp-segment';
-        seg.style.background = color;
-        seg.style.width = width + '%';
-        seg.title = `${emoji ? emoji + ' ' : ''}${slug}: ${allTimeXP[slug]} XP`;
-        xpBar.appendChild(seg);
-      });
-
-      const xpBarLabels = document.getElementById('xpBarLabels');
-      xpBarLabels.innerHTML = '';
-      Object.keys(allTimeXP).forEach(slug => {
-        const width = totalXP > 0 ? (allTimeXP[slug] / totalXP * 100).toFixed(2) : 0;
-        const labelDiv = document.createElement('div');
-        labelDiv.style.width = width + '%';
-        labelDiv.textContent = allTimeXP[slug] + ' XP';
-        xpBarLabels.appendChild(labelDiv);
-      });
-
-      // Calculate streaks from visible date range
-      const visibleDates = Object.keys(visibleDataBySlug[slugs[0]] || {}).sort();
-      const today = new Date().toISOString().split('T')[0];
-      let currentStreak = 0, maxStreak = 0, minStreak = Infinity, streak = 0;
-
-      for (const date of visibleDates) {
-        const totalMins = Object.keys(visibleDataBySlug).reduce((sum, slug) => sum + (visibleDataBySlug[slug][date] || 0), 0);
-        if (totalMins > 0) {
-          streak++;
-          if (streak > maxStreak) maxStreak = streak;
-        } else {
-          if (streak > 0 && streak < minStreak) minStreak = streak;
-          streak = 0;
-        }
-        if (date === today) currentStreak = streak;
-      }
-      if (minStreak === Infinity) minStreak = 0;
-
-      document.getElementById('streakInfo').textContent =
-        `Total XP: ${totalXP} | Current Streak: ${currentStreak} days | Max Streak: ${maxStreak} days | Min Streak: ${minStreak} days`;
-    }
-
-    /* ====== Encode settings into a shareable URL ====== */
-    function encodeSettings() {
-      const data = {};
-      LS_KEYS.forEach(k => data[k] = localStorage.getItem(k) || '');
-      const slugs = (localStorage.getItem('slugs') || '').split(',').map(s => s.trim()).filter(Boolean);
-      data.slugMeta = {};
-      slugs.forEach(slug => {
-        data.slugMeta[slug] = {
-          color: localStorage.getItem(colorKey(slug)) || '',
-          emoji: localStorage.getItem(emojiKey(slug)) || '',
-          xp: localStorage.getItem(xpKey(slug)) || '1'
-        };
-      });
-      return btoa(encodeURIComponent(JSON.stringify(data)));
-    }
-
-    /* ====== Copy shareable link to clipboard ====== */
-    document.getElementById('shareSettings').addEventListener('click', () => {
-      const encoded = encodeSettings();
-      const url = `${location.origin}${location.pathname}?s=${encoded}`;
-      navigator.clipboard.writeText(url).then(() => alert('Shareable link copied!'));
-    });
-
-    /* ====== Load settings from encoded URL query if present ====== */
-    function loadFromQuery() {
-      const params = new URLSearchParams(location.search);
-      if (params.has('s')) {
-        try {
-          const decoded = JSON.parse(decodeURIComponent(atob(params.get('s'))));
-          for (const k of LS_KEYS) localStorage.setItem(k, decoded[k] || '');
-          if (decoded.slugMeta) {
-            Object.keys(decoded.slugMeta).forEach(slug => {
-              localStorage.setItem(colorKey(slug), decoded.slugMeta[slug].color || '');
-              localStorage.setItem(emojiKey(slug), decoded.slugMeta[slug].emoji || '');
-              localStorage.setItem(xpKey(slug), decoded.slugMeta[slug].xp || '1');
-            });
-          }
-          window.history.replaceState({}, document.title, location.pathname);
-          return true;
-        } catch (e) { console.error('Invalid shared settings', e); }
-      }
-      return false;
-    }
-
-    /* ====== Initialization ====== */
-    const fromQuery = loadFromQuery();
-    const hasSettings = loadSettings();
-    toggleSettings(!hasSettings);
-    if (hasSettings || fromQuery) refreshData();
-  </script>
+  <script src="/assets/js/main.js"></script>
 </body>
 </html>
