@@ -500,13 +500,13 @@ document.getElementById('refreshVisibleDays').addEventListener('click',()=>{
 
 document.getElementById('chartStartDate').addEventListener('change', () => {
   const val = document.getElementById('chartStartDate').value.trim();
-  if (val) localStorage.setItem('chartStartDate', val);
+  localStorage.setItem('chartStartDate', val);
   refreshData();
 });
 
 document.getElementById('chartEndDate').addEventListener('change', () => {
   const val = document.getElementById('chartEndDate').value.trim();
-  if (val) localStorage.setItem('chartEndDate', val);
+  localStorage.setItem('chartEndDate', val);
   refreshData();
 });
 
