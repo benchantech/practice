@@ -218,4 +218,10 @@ footer {
     margin-left: 0;
     margin-top: 0.5rem;
   }
+
+  /* ✅ Make chart taller on mobile */
+  #practiceChart {
+    height: 50vh !important;
+    max-height: none;
+  }
 }
