@@ -105,6 +105,26 @@
       const xpKey = slug => `xp_${slug}`;
       const cacheKey = (slug,date)=>`logcache_${slug}_${date}`;
 
+      function loadFromQuery() {
+        const params = new URLSearchParams(location.search);
+        if (params.has('s')) {
+          try {
+            const decoded = JSON.parse(decodeURIComponent(atob(params.get('s'))));
+            for (const k of LS_KEYS) localStorage.setItem(k, decoded[k] || '');
+            if (decoded.slugMeta) {
+              Object.keys(decoded.slugMeta).forEach(slug=>{
+                localStorage.setItem(colorKey(slug), decoded.slugMeta[slug].color || '');
+                localStorage.setItem(emojiKey(slug), decoded.slugMeta[slug].emoji || '');
+                localStorage.setItem(xpKey(slug), decoded.slugMeta[slug].xp || '1');
+              });
+            }
+            window.history.replaceState({}, document.title, location.pathname);
+            return true;
+          } catch(e) { console.error('Invalid shared settings', e); }
+        }
+        return false;
+      }
+
       function loadSettings() {
         let hasData = true;
         LS_KEYS.forEach(k => {
@@ -206,9 +226,8 @@
         navigator.clipboard.writeText(url).then(()=>alert('Shareable link copied!'));
       });
 
-      // --- existing refreshData, drawChart, calculateXPandStreaks, etc. (same as before, unchanged except for forceRefetch support) ---
+      // --- include refreshData, drawChart, calculateXPandStreaks here (with forceRefetch support and XP from all time) ---
 
-      // initialize
       const fromQuery = loadFromQuery();
       const hasSettings = loadSettings();
       toggleSettings(!hasSettings);
