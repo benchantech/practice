@@ -181,41 +181,5 @@ footer {
 
 /* ✅ Mobile-specific layout */
 @media (max-width: 600px) {
-  #settings,
-  #chartContainer {
-    margin: 0.5rem;
-    padding: 0.8rem;
-  }
-
-  h1 {
-    font-size: 1.2rem;
-  }
-
-  .settings-actions {
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .chart-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .chart-header label {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .chart-header input[type="date"],
-  .chart-header select {
-    max-width: 100%;
-    width: auto;
-    flex: 1;
-  }
-
-  .chart-header button#refreshVisibleDays {
-    width: 100%;
-    margin-left: 0;
-    margin-top: 0.5rem;
-  }
+  
 }
