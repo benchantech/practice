@@ -1,6 +1,6 @@
 console.log("%cPractice Log Viewer by Ben Chan | benchantech.com", "color:#0077cc;font-weight:bold;");
 
-const LS_KEYS = ['googleSheetUrl','username','repo','slugs','startDate','endDate','chartType'];
+const LS_KEYS = ['googleSheetUrl','username','repo','slugs','startDate','endDate','chartStartDate','chartEndDate','chartType','groupBy'];
 const colorKey = slug => `color_${slug}`;
 const emojiKey = slug => `emoji_${slug}`;
 const xpKey = slug => `xp_${slug}`;
@@ -120,13 +120,56 @@ function getDateRange(start, end) {
   return dates;
 }
 
+/* ✅ Grouping function */
+function groupDates(labels, groupBy) {
+  if (groupBy === 'Day') return labels;
+  const grouped = {};
+  labels.forEach(dateStr => {
+    const d = new Date(dateStr);
+    let key;
+    switch (groupBy) {
+      case 'Week': {
+        const firstDay = new Date(d);
+        firstDay.setDate(d.getDate() - d.getDay());
+        key = firstDay.toISOString().split('T')[0];
+        break;
+      }
+      case 'Month':
+        key = `${d.getFullYear()}-${('0'+(d.getMonth()+1)).slice(-2)}`;
+        break;
+      case 'Quarter': {
+        const q = Math.floor(d.getMonth()/3)+1;
+        key = `${d.getFullYear()}-Q${q}`;
+        break;
+      }
+      case 'Year':
+        key = `${d.getFullYear()}`;
+        break;
+    }
+    if (!grouped[key]) grouped[key] = {};
+    grouped[key][dateStr] = true;
+  });
+  return Object.keys(grouped);
+}
+
 async function refreshData() {
   const sheetUrl = document.getElementById('googleSheetUrl').value.trim();
+  const startDate = document.getElementById('startDate').value.trim();
+
+  /* ✅ Alert if both Google Sheets URL and Start Date are blank */
+  if (!sheetUrl && !startDate) {
+    alert("Please enter the Start Date of the first practice log in your Git Repo");
+    return;
+  }
 
   if (sheetUrl && sheetUrl.includes('docs.google.com')) {
     const parsed = await parseGoogleSheet(sheetUrl);
     if (parsed && parsed.dates.length > 0) {
-      drawChart(parsed.dates,parsed.data, localStorage.getItem('chartType') || 'line');
+      const chartStart = localStorage.getItem('chartStartDate') || getDefaultChartStart();
+      const chartEnd = localStorage.getItem('chartEndDate') || getToday();
+      const visibleDates = getDateRange(chartStart, chartEnd);
+      const grouped = groupDates(visibleDates, localStorage.getItem('groupBy') || 'Day');
+      drawChart(grouped,parsed.data, localStorage.getItem('chartType') || 'line');
       calculateXPandStreaks(parsed.data);
       renderSkillLevels();
       return;
@@ -136,9 +179,11 @@ async function refreshData() {
   const username = localStorage.getItem('username');
   const repo = localStorage.getItem('repo');
   const slugs = (localStorage.getItem('slugs')||'').split(',').map(s=>s.trim()).filter(Boolean);
-  const startDate = localStorage.getItem('startDate');
   const endDate = localStorage.getItem('endDate');
+  const chartStart = localStorage.getItem('chartStartDate') || getDefaultChartStart();
+  const chartEnd = localStorage.getItem('chartEndDate') || getToday();
   const chartType = localStorage.getItem('chartType') || 'line';
+  const groupBy = localStorage.getItem('groupBy') || 'Day';
 
   if (!username || !repo || !slugs.length || !startDate) {
     alert('Please provide either a Google Sheets URL or GitHub settings.');
@@ -146,6 +191,8 @@ async function refreshData() {
   }
   
   const dateRange = getDateRange(startDate,endDate);
+  const visibleDates = getDateRange(chartStart, chartEnd);
+  const grouped = groupDates(visibleDates, groupBy);
   const dataBySlug = {};
 
   for (const slug of slugs) {
@@ -167,9 +214,24 @@ async function refreshData() {
       dataBySlug[slug][date] = isNaN(total)?0:total;
     }
   }
-  drawChart(dateRange,dataBySlug,chartType); 
+  drawChart(grouped,dataBySlug,chartType); 
   calculateXPandStreaks(dataBySlug);
   renderSkillLevels();
+}
+
+/* ✅ Default chart start date: last 7 days + today */
+function getDefaultChartStart() {
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const start = new Date(today);
+  start.setDate(start.getDate()-7);
+  return start.toISOString().split('T')[0];
+}
+
+function getToday() {
+  const t = new Date();
+  t.setHours(0,0,0,0);
+  return t.toISOString().split('T')[0];
 }
 
 function renderSlugOptions() {
@@ -215,7 +277,14 @@ function drawChart(labels, dataBySlug, chartType) {
 
   const datasets = Object.keys(dataBySlug).map(slug => {
     const color = localStorage.getItem(colorKey(slug)) || randomColor();
-    const values = labels.map(d => dataBySlug[slug]?.[d] || 0);
+    const values = labels.map(d => {
+      if (dataBySlug[slug][d] !== undefined) return dataBySlug[slug][d];
+      let sum = 0;
+      for (const k in dataBySlug[slug]) {
+        if (k.startsWith(d)) sum += dataBySlug[slug][k];
+      }
+      return sum;
+    });
     return {
       label: slug,
       data: values,
@@ -264,7 +333,6 @@ function calculateXPandStreaks(dataBySlug) {
   const allTimeXP = {};
   let totalXP = 0;
 
-  // ✅ Sum ALL cached minutes for each slug (not just visible dates)
   slugs.forEach(slug => {
     const xpPerMin = parseInt(localStorage.getItem(xpKey(slug)) || '1', 10);
     let totalMinutes = 0;
@@ -281,7 +349,6 @@ function calculateXPandStreaks(dataBySlug) {
     totalXP += xp;
   });
 
-  // ✅ Build XP bar
   const xpBar = document.getElementById('xpBar');
   xpBar.innerHTML = '';
 
@@ -304,7 +371,6 @@ function calculateXPandStreaks(dataBySlug) {
     xpBarLabels.appendChild(label);
   });
 
-  // ✅ Build streaks based on ALL cached dates
   const allDates = new Set();
 
   for (let i = 0; i < localStorage.length; i++) {
@@ -349,15 +415,17 @@ document.getElementById('toggleSettings').addEventListener('click',()=>{
 
 document.getElementById('updateSettings').addEventListener('click',()=>{
   LS_KEYS.forEach(k=>{
-    const val = document.getElementById(k).value.trim();
-    if (val || k === 'endDate') {
+    const el = document.getElementById(k);
+    if (!el) return;
+    const val = el.value.trim();
+    if (val || k === 'endDate' || k === 'chartEndDate') {
       localStorage.setItem(k, val);
     } else {
-      localStorage.removeItem(k); // wipe empty values
+      localStorage.removeItem(k);
     }
   });
   saveSlugOptions();
-  renderSlugOptions(); // refresh slug options in case they changed
+  renderSlugOptions();
   refreshData();
 });
 
@@ -369,8 +437,8 @@ document.getElementById('clearEndDate').addEventListener('click',()=>{
 document.getElementById('clearCache').addEventListener('click',()=>{
   const confirmed = confirm('This will clear all cached data and the Google Sheets URL. Continue?');
   if (confirmed) {
-    localStorage.clear(); // wipe all keys
-    location.reload();    // reload the page
+    localStorage.clear();
+    location.reload();
   }
 });
 
@@ -380,7 +448,7 @@ document.getElementById('refreshVisibleDays').addEventListener('click',()=>{
 
 LS_KEYS.forEach(k=>{
   const val = localStorage.getItem(k);
-  if (val) document.getElementById(k).value = val;
+  if (val && document.getElementById(k)) document.getElementById(k).value = val;
 });
 renderSlugOptions();
 if(localStorage.getItem('googleSheetUrl') || localStorage.getItem('username')) refreshData();
