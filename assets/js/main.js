@@ -128,6 +128,7 @@ async function refreshData() {
     if (parsed && parsed.dates.length > 0) {
       drawChart(parsed.dates,parsed.data, localStorage.getItem('chartType') || 'line');
       calculateXPandStreaks(parsed.data);
+      renderSkillLevels();
       return;
     }
   }
@@ -166,8 +167,9 @@ async function refreshData() {
       dataBySlug[slug][date] = isNaN(total)?0:total;
     }
   }
-   drawChart(dateRange,dataBySlug,chartType); 
+  drawChart(dateRange,dataBySlug,chartType); 
   calculateXPandStreaks(dataBySlug);
+  renderSkillLevels();
 }
 
 function renderSlugOptions() {
