@@ -450,9 +450,17 @@ window.addEventListener('load', () => {
         localStorage.setItem(k, decoded[k]);
         if (document.getElementById(k)) document.getElementById(k).value = decoded[k];
       });
+
+      // ✅ Remove hash without reloading
+      history.replaceState(null, '', window.location.pathname);
+
       refreshData();
     } catch (e) {
       console.error('Invalid share data', e);
+    }
+  } else {
+    if (localStorage.getItem('googleSheetUrl') || localStorage.getItem('username')) {
+      refreshData();
     }
   }
 });
