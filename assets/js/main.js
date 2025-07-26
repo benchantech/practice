@@ -411,6 +411,38 @@ function calculateXPandStreaks(dataBySlug) {
     `Total XP: ${totalXP} | Current Streak: ${currentStreak} days | Max Streak: ${maxStreak} days`;
 }
 
+/* ✅ Share settings only */
+document.getElementById('shareSettings').addEventListener('click', () => {
+  const settings = {};
+  LS_KEYS.forEach(k => {
+    const val = localStorage.getItem(k);
+    if (val) settings[k] = val;
+  });
+
+  const encoded = btoa(JSON.stringify(settings));
+  const shareUrl = `${window.location.origin}${window.location.pathname}#${encoded}`;
+
+  navigator.clipboard.writeText(shareUrl)
+    .then(() => alert('Share link copied to clipboard. Only settings are included.'))
+    .catch(() => alert('Unable to copy share link.'));
+});
+
+/* ✅ Load settings from shared link */
+window.addEventListener('load', () => {
+  if (window.location.hash.length > 1) {
+    try {
+      const decoded = JSON.parse(atob(window.location.hash.substring(1)));
+      Object.keys(decoded).forEach(k => {
+        localStorage.setItem(k, decoded[k]);
+        if (document.getElementById(k)) document.getElementById(k).value = decoded[k];
+      });
+      refreshData();
+    } catch (e) {
+      console.error('Invalid share data', e);
+    }
+  }
+});
+
 document.getElementById('toggleSettings').addEventListener('click',()=>{
   const s = document.getElementById('settings');
   s.style.display = s.style.display==='none'?'block':'none';
@@ -449,7 +481,6 @@ document.getElementById('refreshVisibleDays').addEventListener('click',()=>{
   refreshData();
 });
 
-/* ✅ Auto-refresh on date/group changes */
 document.getElementById('chartStartDate').addEventListener('change', () => {
   const val = document.getElementById('chartStartDate').value.trim();
   if (val) localStorage.setItem('chartStartDate', val);
