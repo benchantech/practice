@@ -10,7 +10,6 @@ function randomColor() {
   return '#'+Math.floor(Math.random()*16777215).toString(16);
 }
 
-/* Convert Google Sheets link to CSV */
 function toCsvLink(originalUrl) {
   const match = originalUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
   if (!match) return null;
@@ -18,7 +17,6 @@ function toCsvLink(originalUrl) {
   return `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`;
 }
 
-/* Parse Google Sheets CSV file */
 async function parseGoogleSheet(url) {
   try {
     const csvUrl = toCsvLink(url);
@@ -118,7 +116,6 @@ function getDateRange(start, end) {
   return dates;
 }
 
-/* ✅ Aggregating function */
 function groupData(labels, dataBySlug, groupBy) {
   if (groupBy === 'Day') return { labels, dataBySlug };
 
@@ -157,7 +154,7 @@ function groupData(labels, dataBySlug, groupBy) {
   return { labels: groupedLabels, dataBySlug: groupedData };
 }
 
-async function refreshData() {
+async function refreshData(forceVisibleOnly = false) {
   const sheetUrl = document.getElementById('googleSheetUrl').value.trim();
   const startDate = document.getElementById('startDate').value.trim();
 
@@ -169,11 +166,11 @@ async function refreshData() {
   const chartStart = localStorage.getItem('chartStartDate') || getDefaultChartStart();
   const chartEnd = localStorage.getItem('chartEndDate') || getToday();
   const groupBy = localStorage.getItem('groupBy') || 'Day';
+  const visibleDates = getDateRange(chartStart, chartEnd);
 
   if (sheetUrl && sheetUrl.includes('docs.google.com')) {
     const parsed = await parseGoogleSheet(sheetUrl);
     if (parsed && parsed.dates.length > 0) {
-      const visibleDates = getDateRange(chartStart, chartEnd);
       const { labels, dataBySlug } = groupData(visibleDates, parsed.data, groupBy);
       drawChart(labels, dataBySlug, localStorage.getItem('chartType') || 'line');
       calculateXPandStreaks(parsed.data);
@@ -193,8 +190,7 @@ async function refreshData() {
     return;
   }
 
-  const dateRange = getDateRange(startDate, endDate);
-  const visibleDates = getDateRange(chartStart, chartEnd);
+  const dateRange = forceVisibleOnly ? visibleDates : getDateRange(startDate, endDate);
   const dataBySlug = {};
 
   for (const slug of slugs) {
@@ -202,17 +198,14 @@ async function refreshData() {
     for (const date of dateRange) {
       const key = cacheKey(slug, date);
       let total;
-      const cached = localStorage.getItem(key);
-      if (cached !== null) {
-        total = parseInt(cached, 10);
-      } else {
-        const [y, m, d] = date.split('-');
-        const url = `https://${username}.github.io/${repo}/${slug}/${y}/${m}/${d}.json`;
-        let logs = await fetchLog(url);
-        if (!Array.isArray(logs)) logs = [];
-        total = logs.reduce((sum, entry) => sum + parseInt(entry.minutes || 0, 10), 0);
-        localStorage.setItem(key, total);
-      }
+      const [y, m, d] = date.split('-');
+      const url = `https://${username}.github.io/${repo}/${slug}/${y}/${m}/${d}.json`;
+
+      let logs = await fetchLog(url);
+      if (!Array.isArray(logs)) logs = [];
+      total = logs.reduce((sum, entry) => sum + parseInt(entry.minutes || 0, 10), 0);
+      localStorage.setItem(key, total);
+
       dataBySlug[slug][date] = isNaN(total) ? 0 : total;
     }
   }
@@ -281,13 +274,11 @@ function drawChart(labels, dataBySlug, chartType) {
 
   const displayLabels = labels.map(d => d.includes('-') ? d.slice(5) : d);
 
-  // ✅ Only lock height on mobile
   if (window.innerWidth <= 600 && !canvas.dataset.fixedHeight) {
     canvas.style.width = '100%';
-    canvas.style.height = (window.innerHeight * 0.5) + 'px'; // 50% viewport
+    canvas.style.height = (window.innerHeight * 0.5) + 'px';
     canvas.dataset.fixedHeight = 'true';
   } else if (window.innerWidth > 600) {
-    // ✅ Clear any fixed height for desktop
     canvas.style.height = '';
     delete canvas.dataset.fixedHeight;
   }
@@ -320,8 +311,8 @@ function drawChart(labels, dataBySlug, chartType) {
     type: chartType === 'stackedBar' ? 'bar' : chartType,
     data: { labels: displayLabels, datasets },
     options: {
-      responsive: window.innerWidth > 600, // ✅ enable responsive only on desktop
-      maintainAspectRatio: window.innerWidth > 600, // ✅ keep ratio on desktop
+      responsive: window.innerWidth > 600,
+      maintainAspectRatio: window.innerWidth > 600,
       plugins: { legend: { position: 'bottom' } },
       scales: (chartType === 'pie' || chartType === 'polarArea') ? {} : {
         x: chartType === 'stackedBar' ? { stacked: true } : {},
@@ -425,7 +416,6 @@ function calculateXPandStreaks(dataBySlug) {
     `Total XP: ${totalXP} | Current Streak: ${currentStreak} days | Max Streak: ${maxStreak} days`;
 }
 
-/* ✅ Share settings only */
 document.getElementById('shareSettings').addEventListener('click', () => {
   const settings = {};
   LS_KEYS.forEach(k => {
@@ -441,7 +431,6 @@ document.getElementById('shareSettings').addEventListener('click', () => {
     .catch(() => alert('Unable to copy share link.'));
 });
 
-/* ✅ Load settings from shared link */
 window.addEventListener('load', () => {
   if (window.location.hash.length > 1) {
     try {
@@ -451,7 +440,6 @@ window.addEventListener('load', () => {
         if (document.getElementById(k)) document.getElementById(k).value = decoded[k];
       });
 
-      // ✅ Remove hash without reloading
       history.replaceState(null, '', window.location.pathname);
 
       refreshData();
@@ -485,7 +473,6 @@ document.getElementById('updateSettings').addEventListener('click',()=>{
   renderSlugOptions();
   refreshData();
 
-  // ✅ Trigger Show Settings button to hide panel
   document.getElementById('toggleSettings').click();
 });
 
@@ -503,7 +490,7 @@ document.getElementById('clearCache').addEventListener('click',()=>{
 });
 
 document.getElementById('refreshVisibleDays').addEventListener('click',()=>{
-  refreshData();
+  refreshData(true);
 });
 
 document.getElementById('chartStartDate').addEventListener('change', () => {
