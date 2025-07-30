@@ -14,7 +14,7 @@ This browser-based tool helps musicians and learners track practice, build consi
 
 - **Safe by Design:** Your data is loaded from sources you select and only stored locally. 
 - **Family-Ready:** Supports multiple users and shared progress tracking.  
-- **Flexible Sync:** Save to a simple Google Sheet or a more advanced GitHub Pages repo.  
+- **Flexible:** Track your practice in a simple Google Sheet or a more advanced GitHub Pages repo, owned by you.
 - **Gamified Progress:** XP tracking, streak visualization, and skill-level summaries.  
 - **$0 Infrastructure:** Runs entirely in the browser; no paid hosting or backend needed.  
 
@@ -24,8 +24,8 @@ This browser-based tool helps musicians and learners track practice, build consi
 
 1. **Open in Browser:** [Launch the Practice Log](#)  
 2. **Choose Storage:**  
-   - *Simple mode:* Connect a Google Sheet for easy backups.  
-   - *Advanced mode:* Fork the GitHub Pages repo for version-controlled tracking.  
+   - *Simple mode:* Connect a Google Sheet and sync your minutes.  
+   - *Advanced mode:* Fork a GitHub Pages repo for version-controlled tracking using JSON objects.  
 3. **Start Logging:**  
    - Add practice sessions, track XP, and see your streak grow.  
    - Use skill levels to map your progress across different areas.
@@ -34,13 +34,13 @@ This browser-based tool helps musicians and learners track practice, build consi
 
 ## 🏠 For Families
 
-The Practice Log is designed to be a shared tool. Create profiles for each family member, track progress individually, and watch collective practice habits emerge.
+The Practice Log is designed to be a shared tool. Set up a "slug" for each family member, track progress individually, and watch collective practice habits emerge.
 
 ---
 
 ## 🔧 For Developers & Educators
 
-- Fork this repo and adapt it for your own teaching context.  
+- Fork this repo and adapt this tool for your own teaching context.  
 - All commits are documented with clear messages to serve as learning artifacts.  
 - README files double as living curriculum—every project here is both a tool and a lesson.
 
