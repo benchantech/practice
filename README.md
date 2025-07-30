@@ -12,7 +12,7 @@ This browser-based tool helps musicians and learners track practice, build consi
 
 ## ✨ Features
 
-- **Private by Design:** Your data is stored locally in your browser. Nothing is sent to a server.  
+- **Safe by Design:** Your data is loaded from sources you select and only stored locally. 
 - **Family-Ready:** Supports multiple users and shared progress tracking.  
 - **Flexible Sync:** Save to a simple Google Sheet or a more advanced GitHub Pages repo.  
 - **Gamified Progress:** XP tracking, streak visualization, and skill-level summaries.  
