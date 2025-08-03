@@ -4,7 +4,7 @@
 
 **Family-led music + code. $0 tools. Full transparency.**
 
-The **Open-Stage Practice Log** is the first project in the [Open Code Orchestra](#) — a family-led experiment in disciplined creation, built entirely in public.  
+The **Open-Stage Practice Log** is the first project in the [Open Code Orchestra™](https://oco.benchantech.com) — a family-led experiment in disciplined creation, built entirely in public.  
 
 This browser-based tool helps musicians and learners track practice, build consistent habits, and create a visible legacy over time. Every commit and README is a lesson; the process itself becomes the curriculum.
 
